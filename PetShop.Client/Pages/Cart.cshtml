@@ -1,0 +1,339 @@
+@page
+@model PetShop.Client.Pages.CartModel
+@{ ViewData["Title"] = "Giỏ hàng"; }
+
+<div class="d-flex align-items-center mb-4 gap-3">
+    <a href="/" class="btn btn-outline-secondary btn-sm">← Tiếp tục mua</a>
+    <h5 class="mb-0 fw-semibold">🛒 Giỏ hàng của bạn</h5>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Giỏ hàng trống -->
+<div id="cart-empty" class="text-center py-5" style="display:none">
+    <div style="font-size:5rem">🛒</div>
+    <h5 class="text-muted mt-3">Giỏ hàng của bạn đang trống</h5>
+    <p class="text-muted small">Hãy thêm sản phẩm hoặc thú cưng vào giỏ hàng!</p>
+    <a href="/" class="btn btn-primary mt-2">🛍️ Mua sắm ngay</a>
+</div>
+
+<!-- Nội dung giỏ hàng -->
+<div id="cart-content">
+    <div class="row g-4">
+        <!-- Danh sách sản phẩm -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">🛍️ Sản phẩm trong giỏ (<span id="cart-item-count">0</span> món)</span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="clearCart()">
+                        <i class="bi bi-trash me-1"></i>Xóa tất cả
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0" id="cart-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-center" style="width:140px">Số lượng</th>
+                                    <th class="text-end" style="width:130px">Thành tiền</th>
+                                    <th style="width:40px"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-items"></tbody>
+                            <tfoot id="cart-footer" class="table-light">
+                                <tr class="fw-bold">
+                                    <td colspan="2" class="text-end py-3">Tổng cộng:</td>
+                                    <td class="text-end text-primary fs-5" id="cart-total">0đ</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form đặt hàng -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header fw-semibold">📦 Thông tin đặt hàng</div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(HttpContext.Session.GetString("AccessToken")))
+                    {
+                        <form method="post" id="order-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="CartJson" id="cart-json-input"/>
+                            <div class="border rounded p-3 mb-3 bg-light">
+                                <div class="fw-semibold mb-2">Thông tin người nhận</div>
+                                <div class="small text-muted">Họ tên</div>
+                                <div class="fw-medium mb-2">@(string.IsNullOrWhiteSpace(Model.CustomerName) ? "Chưa cập nhật" : Model.CustomerName)</div>
+                                <div class="small text-muted">Số điện thoại</div>
+                                <div class="fw-medium">
+                                    @if (string.IsNullOrWhiteSpace(Model.CustomerPhone))
+                                    {
+                                        <span class="text-danger">Chưa cập nhật số điện thoại</span>
+                                    }
+                                    else
+                                    {
+                                        @Model.CustomerPhone
+                                    }
+                                </div>
+                                <a href="/User/Profile" class="btn btn-outline-secondary btn-sm mt-2">Cập nhật hồ sơ</a>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">
+                                    Địa chỉ giao hàng <span class="text-danger">*</span>
+                                </label>
+                                <textarea name="ShippingAddress" class="form-control" rows="3"
+                                          placeholder="Số nhà, đường, phường, quận, thành phố...">@Model.ShippingAddress</textarea>
+                                <div class="form-text">Địa chỉ được lấy từ hồ sơ, bạn vẫn có thể sửa cho riêng đơn này.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-medium">Ghi chú</label>
+                                <input name="Note" class="form-control" placeholder="Ghi chú cho đơn hàng (tuỳ chọn)"/>
+                            </div>
+                            <!-- Tóm tắt đơn hàng -->
+                            <div class="border rounded p-3 mb-3 bg-light">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Tạm tính</span>
+                                    <span id="summary-subtotal">0đ</span>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted mb-2">
+                                    <span>Phí vận chuyển</span>
+                                    <span class="text-success">Miễn phí</span>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>Tổng thanh toán</span>
+                                    <span class="text-primary" id="summary-total">0đ</span>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-success btn-lg" onclick="submitOrder()" id="checkout-btn">
+                                    <i class="bi bi-bag-check me-2"></i>Đặt hàng ngay
+                                </button>
+                                <button type="button" class="btn btn-primary btn-lg mt-2" onclick="submitPayOs()" id="payos-btn">
+                                    <i class="bi bi-qr-code me-2"></i>Thanh toan PayOS
+                                </button>
+                            </div>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <div style="font-size:3rem">🔐</div>
+                            <p class="text-muted mt-2">Vui lòng đăng nhập để đặt hàng</p>
+                            <a href="/Auth/Login" class="btn btn-primary w-100 mb-2">
+                                <i class="bi bi-credit-card me-2"></i>Thanh toán PayOS
+                            </a>
+                            <a href="/Auth/Login" class="btn btn-primary w-100">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập
+                            </a>
+                            <a href="/Auth/Register" class="btn btn-outline-secondary w-100 mt-2">Đăng ký tài khoản</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+/* ── Helpers ────────────────────────────────── */
+function getCart() {
+    if (window.PetShopCart) return window.PetShopCart.get();
+    try {
+        const parsed = JSON.parse(sessionStorage.getItem('petshop_cart') || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+function saveCart(cart) {
+    if (window.PetShopCart) window.PetShopCart.save(cart);
+    else sessionStorage.setItem('petshop_cart', JSON.stringify(cart));
+    updateCartBadge();
+}
+function updateCartBadge() {
+    if (window.PetShopCart) {
+        window.PetShopCart.updateBadge();
+        return;
+    }
+
+    const cart = getCart();
+    const total = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
+    const badge = document.getElementById('cart-count');
+    if (badge) badge.textContent = total > 0 ? total : '';
+}
+
+/* ── Thao tác giỏ hàng ─────────────────────── */
+function clearCart() {
+    if (!confirm('Xóa toàn bộ giỏ hàng?')) return;
+    if (window.PetShopCart) window.PetShopCart.clear();
+    else sessionStorage.removeItem('petshop_cart');
+    updateCartBadge();
+    renderCart();
+}
+function removeItem(type, id) {
+    const cart = getCart().filter(i => !(i.type === type && i.id === id));
+    saveCart(cart);
+    renderCart();
+}
+function updateQty(type, id, delta) {
+    const cart = getCart();
+    const item = cart.find(i => i.type === type && i.id === id);
+    if (!item) return;
+    item.qty = Math.max(1, item.qty + delta);
+    if (item.type === 'pet') item.qty = 1;  // Thú cưng chỉ mua 1
+    saveCart(cart);
+    renderCart();
+}
+
+/* ── Render ────────────────────────────────── */
+function renderCart() {
+    const cart    = getCart();
+    const tbody   = document.getElementById('cart-items');
+    const empty   = document.getElementById('cart-empty');
+    const content = document.getElementById('cart-content');
+    const counter = document.getElementById('cart-item-count');
+
+    if (cart.length === 0) {
+        empty.style.display   = '';
+        content.style.display = 'none';
+        return;
+    }
+    empty.style.display   = 'none';
+    content.style.display = '';
+
+    let html  = '';
+    let total = 0;
+    let count = 0;
+
+    cart.forEach(item => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+        count += item.qty;
+
+        const emoji  = item.type === 'pet' ? '🐾' : '🛍️';
+        const label  = item.type === 'pet' ? 'Thú cưng' : 'Sản phẩm';
+        const qtyCtrl = item.type === 'pet'
+            ? `<span class="badge bg-secondary px-3 py-2">1</span>
+               <small class="text-muted d-block" style="font-size:0.7rem">Chỉ mua 1</small>`
+            : `<div class="input-group input-group-sm" style="width:110px;margin:auto">
+                 <button class="btn btn-outline-secondary" type="button"
+                         onclick="updateQty('${item.type}',${item.id},-1)">−</button>
+                 <span class="form-control text-center fw-bold">${item.qty}</span>
+                 <button class="btn btn-outline-secondary" type="button"
+                         onclick="updateQty('${item.type}',${item.id},1)">+</button>
+               </div>`;
+
+        html += `<tr>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="font-size:1.5rem">${emoji}</span>
+                    <div>
+                        <div class="fw-medium">${item.name}</div>
+                        <small class="text-muted">${label} · ${item.price.toLocaleString('vi-VN')}đ/cái</small>
+                    </div>
+                </div>
+            </td>
+            <td class="text-center">${qtyCtrl}</td>
+            <td class="text-end fw-semibold text-primary">${subtotal.toLocaleString('vi-VN')}đ</td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-link text-danger p-0"
+                        onclick="removeItem('${item.type}',${item.id})"
+                        title="Xóa">
+                    <i class="bi bi-x-circle-fill fs-5"></i>
+                </button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+    if (counter) counter.textContent = count;
+
+    const fmtTotal = total.toLocaleString('vi-VN') + 'đ';
+    document.getElementById('cart-total').textContent     = fmtTotal;
+    const sub = document.getElementById('summary-subtotal');
+    const tot = document.getElementById('summary-total');
+    if (sub) sub.textContent = fmtTotal;
+    if (tot) tot.textContent = fmtTotal;
+}
+
+/* ── Đặt hàng ──────────────────────────────── */
+function submitOrder() {
+    if (!prepareCheckout()) return;
+
+    const btn = document.getElementById('checkout-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Dang xu ly...';
+    }
+
+    document.getElementById('order-form').submit();
+}
+
+/* ── Init ──────────────────────────────────── */
+function submitPayOs() {
+    if (!prepareCheckout()) return;
+
+    const btn = document.getElementById('payos-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Dang mo PayOS...';
+    }
+
+    const form = document.getElementById('order-form');
+    form.action = '/User/PayOS';
+    form.submit();
+}
+
+function prepareCheckout() {
+    const cart = getCart();
+    if (cart.length === 0) {
+        alert('Gio hang trong! Vui long them san pham truoc.');
+        return false;
+    }
+
+    const addressInput = document.querySelector('[name=ShippingAddress]');
+    const addr = addressInput.value.trim();
+    if (!addr) {
+        addressInput.classList.add('is-invalid');
+        addressInput.focus();
+        return false;
+    }
+
+    addressInput.classList.remove('is-invalid');
+    document.getElementById('cart-json-input').value = JSON.stringify(cart);
+    return true;
+}
+
+function initCartPage() {
+    renderCart();
+    updateCartBadge();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCartPage);
+} else {
+    initCartPage();
+}
+
+window.addEventListener('pageshow', initCartPage);
+</script>
+}

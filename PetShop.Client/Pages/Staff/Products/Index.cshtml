@@ -1,0 +1,155 @@
+@page
+@model PetShop.Client.Pages.Staff.Products.IndexModel
+@{ ViewData["Title"] = "Quản lý Sản phẩm"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0 fw-semibold">🛍️ Quản lý Sản phẩm</h5>
+    <a href="/Staff/Products/Edit" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@{
+    var categories = new[]
+    {
+        new { Label = "Tất cả", Icon = "🛍️", Value = "", Url = "/Staff/Products" },
+        new { Label = "Thú cưng", Icon = "🐾", Value = "__pets", Url = "/Staff/Pets" },
+        new { Label = "Thức ăn", Icon = "🍖", Value = "Food", Url = "/Staff/Products?category=Food" },
+        new { Label = "Phụ kiện", Icon = "🎀", Value = "Accessory", Url = "/Staff/Products?category=Accessory" },
+        new { Label = "Đồ chơi", Icon = "🎾", Value = "Toy", Url = "/Staff/Products?category=Toy" },
+        new { Label = "Thuốc", Icon = "💊", Value = "Medicine", Url = "/Staff/Products?category=Medicine" },
+        new { Label = "Grooming", Icon = "✂️", Value = "Grooming", Url = "/Staff/Products?category=Grooming" },
+        new { Label = "Khác", Icon = "📦", Value = "Other", Url = "/Staff/Products?category=Other" }
+    };
+}
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    @foreach (var item in categories)
+    {
+        var active = item.Value == "" ? string.IsNullOrEmpty(Model.Category) : Model.Category == item.Value;
+        <a href="@item.Url"
+           class="btn btn-sm ajax-link @(active ? "btn-success" : "btn-outline-success")">
+            @item.Icon @item.Label
+        </a>
+    }
+</div>
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" id="filter-form" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <input name="search" value="@Model.Search" class="form-control form-control-sm" placeholder="🔍 Tìm tên sản phẩm..."/>
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">Tất cả danh mục</option>
+                    <option value="Food"      selected="@(Model.Category=="Food")">🍖 Thức ăn</option>
+                    <option value="Accessory" selected="@(Model.Category=="Accessory")">🎀 Phụ kiện</option>
+                    <option value="Medicine"  selected="@(Model.Category=="Medicine")">💊 Thuốc</option>
+                    <option value="Toy"       selected="@(Model.Category=="Toy")">🎾 Đồ chơi</option>
+                    <option value="Grooming"  selected="@(Model.Category=="Grooming")">✂️ Grooming</option>
+                    <option value="Other"     selected="@(Model.Category=="Other")">📦 Khác</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="sort" class="form-select form-select-sm">
+                    <option value="CreatedAt desc" selected="@(Model.Sort=="CreatedAt desc")">Mới nhất</option>
+                    <option value="Name asc"       selected="@(Model.Sort=="Name asc")">Tên A-Z</option>
+                    <option value="Name desc"      selected="@(Model.Sort=="Name desc")">Tên Z-A</option>
+                    <option value="Price asc"      selected="@(Model.Sort=="Price asc")">Giá tăng dần</option>
+                    <option value="Price desc"     selected="@(Model.Sort=="Price desc")">Giá giảm dần</option>
+                    <option value="Stock asc"      selected="@(Model.Sort=="Stock asc")">Tồn kho thấp trước</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <select name="pageSize" class="form-select form-select-sm">
+                    <option value="5"  selected="@(Model.PageSize==5)">5</option>
+                    <option value="10" selected="@(Model.PageSize==10)">10</option>
+                    <option value="20" selected="@(Model.PageSize==20)">20</option>
+                    <option value="50" selected="@(Model.PageSize==50)">50</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Lọc</button>
+            </div>
+            <div class="col-md-1">
+                <a href="/Staff/Products" class="btn btn-outline-secondary btn-sm w-100 ajax-link">Xoá lọc</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="product-grid">
+    <partial name="_ProductGrid" model="Model" />
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const grid = document.getElementById('product-grid');
+        
+        function loadAjax(url) {
+            grid.style.opacity = '0.5';
+            
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.text())
+            .then(html => {
+                grid.innerHTML = html;
+                grid.style.opacity = '1';
+                window.history.pushState({}, '', url);
+            })
+            .catch(err => {
+                console.error(err);
+                grid.style.opacity = '1';
+            });
+        }
+        
+        // Handle filter form submit
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            filterForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const url = '?' + new URLSearchParams(new FormData(e.target)).toString();
+                loadAjax(url);
+            });
+        }
+        
+        // Handle clicks on ajax links
+        document.body.addEventListener('click', (e) => {
+            const link = e.target.closest('a.ajax-link');
+            if (link) {
+                e.preventDefault();
+                // Update active state for top category buttons
+                if(link.classList.contains('btn')) {
+                    document.querySelectorAll('a.ajax-link.btn').forEach(l => {
+                        l.classList.remove('btn-success');
+                        l.classList.add('btn-outline-success');
+                    });
+                    link.classList.remove('btn-outline-success');
+                    link.classList.add('btn-success');
+                }
+                
+                loadAjax(link.href);
+            }
+        });
+        
+        // Handle back/forward browser buttons
+        window.addEventListener('popstate', () => {
+            loadAjax(location.href);
+        });
+    });
+</script>
+}

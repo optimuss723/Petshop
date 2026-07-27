@@ -1,0 +1,94 @@
+@page
+@model PetShop.Client.Pages.Admin.Pets.IndexModel
+@{ ViewData["Title"] = "Quản lý Thú cưng"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0 fw-semibold">🐾 Quản lý Thú cưng</h5>
+    <a href="/Admin/Pets/Edit" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Thêm thú cưng
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">Tất cả loài</option>
+                    <option value="Dog"  selected="@(Model.Category=="Dog")">🐕 Chó</option>
+                    <option value="Cat"  selected="@(Model.Category=="Cat")">🐈 Mèo</option>
+                    <option value="Bird" selected="@(Model.Category=="Bird")">🐦 Chim</option>
+                    <option value="Fish" selected="@(Model.Category=="Fish")">🐟 Cá</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="Available" selected="@(Model.Status=="Available")">Còn hàng</option>
+                    <option value="Reserved"  selected="@(Model.Status=="Reserved")">Đã đặt</option>
+                    <option value="Sold"      selected="@(Model.Status=="Sold")">Đã bán</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Lọc</button>
+            </div>
+            <div class="col-md-2">
+                <a href="/Admin/Pets" class="btn btn-outline-secondary btn-sm w-100">Xoá lọc</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-3">
+@foreach (var pet in Model.Pets)
+{
+    <div class="col">
+        <div class="card h-100">
+            @if (!string.IsNullOrEmpty(pet.ImageUrl))
+            {
+                <img src="@pet.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@pet.Name"/>
+            }
+            else
+            {
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:80px;font-size:2rem">
+                    @(pet.Category switch { "Dog" => "🐕", "Cat" => "🐈", "Bird" => "🐦", "Fish" => "🐟", _ => "🐾" })
+                </div>
+            }
+            <div class="card-body pb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="card-title mb-1 fw-semibold">@pet.Name</h6>
+                    <span class="badge @(pet.Status switch {
+                        "Available" => "bg-success",
+                        "Reserved"  => "bg-warning text-dark",
+                        "Sold"      => "bg-secondary",
+                        _ => "bg-light text-dark"
+                    })">@pet.Status</span>
+                </div>
+                <p class="text-muted small mb-1">@pet.Breed — @pet.AgeMonths tháng tuổi</p>
+                <p class="fw-semibold text-primary mb-2">@pet.Price.ToString("N0")đ</p>
+                <p class="small text-muted text-truncate">@pet.Description</p>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="/Admin/Pets/Edit/@pet.Id" class="btn btn-outline-primary btn-sm flex-fill">Sửa</a>
+                <form method="post" asp-page-handler="Delete" class="flex-fill"
+                      onsubmit="return confirm('Xoá @pet.Name?')">
+                    <input type="hidden" name="id" value="@pet.Id"/>
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">Xoá</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+@if (!Model.Pets.Any())
+{
+    <div class="col-12 text-center text-muted py-5">Không có thú cưng nào</div>
+}
+</div>

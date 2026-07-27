@@ -1,0 +1,122 @@
+@page
+@model PetShop.Client.Pages.Staff.DashboardModel
+@{ ViewData["Title"] = "Staff Dashboard"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 fw-semibold">Xin chào, @Model.UserName 👋</h4>
+        <div class="text-muted small">Theo dõi và xử lý đơn hàng trong ngày.</div>
+    </div>
+    <a class="btn btn-success btn-sm px-3" href="/Staff/Orders">
+        📦 Quản lý đơn hàng
+    </a>
+</div>
+
+@* ── Stat Cards ── *@
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon yellow">⏳</div>
+            <div>
+                <div class="stat-value">@Model.PendingCount</div>
+                <div class="stat-label">Chờ xử lý</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon blue">✅</div>
+            <div>
+                <div class="stat-value">@Model.ConfirmedCount</div>
+                <div class="stat-label">Đã xác nhận</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon green">🚚</div>
+            <div>
+                <div class="stat-value">@Model.ShippingCount</div>
+                <div class="stat-label">Đang giao / Chờ nhận</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon gray">📬</div>
+            <div>
+                <div class="stat-value">@Model.DeliveredCount</div>
+                <div class="stat-label">Đã giao hàng</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Bảng đơn hàng cần xử lý ── *@
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0 fw-semibold">📋 Đơn hàng cần xử lý</h6>
+    <a class="small text-decoration-none text-success" href="/Staff/AuditLog">Xem lịch sử thao tác →</a>
+</div>
+
+<div class="data-table">
+    <table class="table table-hover align-middle">
+        <thead>
+        <tr>
+            <th>Đơn</th>
+            <th>Khách hàng</th>
+            <th>Trạng thái</th>
+            <th>Tổng tiền</th>
+            <th>Ngày đặt</th>
+            <th class="text-end">Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var order in Model.RecentOrders)
+        {
+            var statusLabel = order.Status switch {
+                "Pending"        => "⏳ Chờ xử lý",
+                "Confirmed"      => "✅ Đã xác nhận",
+                "Shipping"       => "🚚 Đang giao",
+                "AwaitingReceipt"=> "📬 Chờ xác nhận nhận hàng",
+                "Delivered"      => "📦 Hoàn tất",
+                "Cancelled"      => "❌ Đã huỷ",
+                _ => order.Status
+            };
+            <tr>
+                <td class="text-muted fw-medium">#@order.Id</td>
+                <td>
+                    <div class="fw-semibold">@order.UserName</div>
+                    @if (!string.IsNullOrEmpty(order.CustomerPhone))
+                    {
+                        <div class="text-muted small">📞 @order.CustomerPhone</div>
+                    }
+                </td>
+                <td>
+                    <span class="badge @(order.Status switch {
+                        "Pending"         => "bg-warning text-dark",
+                        "Confirmed"       => "bg-info text-dark",
+                        "Shipping"        => "bg-primary",
+                        "AwaitingReceipt" => "bg-secondary",
+                        "Delivered"       => "bg-success",
+                        "Cancelled"       => "bg-danger",
+                        _ => "bg-light text-dark"
+                    })">@statusLabel</span>
+                </td>
+                <td class="fw-semibold">@order.TotalAmount.ToString("N0")đ</td>
+                <td class="small text-muted">@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-success" href="/Staff/Orders">Xử lý</a>
+                </td>
+            </tr>
+        }
+        @if (!Model.RecentOrders.Any())
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    🎉 Không có đơn hàng nào cần xử lý!
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

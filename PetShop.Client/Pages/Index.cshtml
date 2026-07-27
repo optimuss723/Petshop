@@ -1,0 +1,389 @@
+@page
+@model PetShop.Client.Pages.IndexModel
+@{
+    ViewData["Title"] = "Trang chủ - PetShop";
+    ViewData["Description"] = "Mua sắm thức ăn, phụ kiện và thú cưng chất lượng cao";
+}
+
+<!-- Hero Section -->
+<div class="rounded-4 text-white p-5 mb-4 position-relative overflow-hidden"
+     style="background:linear-gradient(135deg,#1e3a5f,#2563eb)">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-5 fw-bold mb-3">🐾 Chào mừng đến PetShop</h1>
+            <p class="lead opacity-90 mb-4">Tìm kiếm thú cưng yêu thương, thức ăn chất lượng và phụ kiện đa dạng cho thú cưng của bạn.</p>
+            <a href="#food" class="btn btn-light btn-lg me-2">🛍️ Xem sản phẩm</a>
+            <a href="#pets" class="btn btn-outline-light btn-lg">🐕 Xem thú cưng</a>
+        </div>
+        <div class="col-lg-6 d-none d-lg-block text-center">
+            <div style="font-size:8rem;opacity:.8">🐕🐈🐦🐟</div>
+        </div>
+    </div>
+    <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:rgba(255,255,255,.05);border-radius:50%"></div>
+    <div style="position:absolute;bottom:-80px;right:100px;width:300px;height:300px;background:rgba(255,255,255,.03);border-radius:50%"></div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small">🔍 Tìm kiếm</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input name="search" class="form-control" placeholder="Tên sản phẩm, thú cưng..." value="@Model.Search"/>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">📂 Danh mục</label>
+                <select name="category" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="Food"      selected="@(Model.Category=="Food"?"selected":null)">🥩 Thức ăn</option>
+                    <option value="Toy"       selected="@(Model.Category=="Toy"?"selected":null)">🎾 Đồ chơi</option>
+                    <option value="Accessory" selected="@(Model.Category=="Accessory"?"selected":null)">🎠 Phụ kiện</option>
+                    <option value="Medicine"  selected="@(Model.Category=="Medicine"?"selected":null)">💊 Thuốc</option>
+                    <option value="Dog"       selected="@(Model.Category=="Dog"?"selected":null)">🐕 Chó</option>
+                    <option value="Cat"       selected="@(Model.Category=="Cat"?"selected":null)">🐈 Mèo</option>
+                    <option value="Bird"      selected="@(Model.Category=="Bird"?"selected":null)">🐦 Chim</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">💰 Giá từ</label>
+                <input name="minPrice" type="number" class="form-control" placeholder="0" value="@Model.MinPrice"/>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">💰 Giá đến</label>
+                <input name="maxPrice" type="number" class="form-control" placeholder="999999999" value="@Model.MaxPrice"/>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">🔍 Lọc</button>
+            </div>
+        </form>
+        @if (Model.IsFiltering)
+        {
+            <div class="mt-2">
+                <small class="text-muted">
+                    Đang lọc:
+                    @if (!string.IsNullOrEmpty(Model.Search))   { <span class="badge bg-primary me-1">Tìm: @Model.Search</span> }
+                    @if (!string.IsNullOrEmpty(Model.Category)) { <span class="badge bg-info text-dark me-1">@Model.Category</span> }
+                    @if (Model.MinPrice.HasValue)                { <span class="badge bg-secondary me-1">Từ @Model.MinPrice.Value.ToString("N0")đ</span> }
+                    @if (Model.MaxPrice.HasValue)                { <span class="badge bg-secondary me-1">Đến @Model.MaxPrice.Value.ToString("N0")đ</span> }
+                    <a href="/" class="text-decoration-none ms-1 text-danger small">✕ Xóa bộ lọc</a>
+                </small>
+            </div>
+        }
+    </div>
+</div>
+
+@* ── Helper macro card sản phẩm ── *@
+@{
+    Func<PetShop.Shared.DTOs.Response.ProductResponse, string, object> ProductCard = (p, emoji) => (object)"";
+}
+
+@if (Model.IsFiltering)
+{
+    <!-- Chế độ lọc: gộp chung -->
+    <section id="products" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="fw-bold mb-0">🔍 Kết quả tìm kiếm <span class="badge bg-primary">@Model.ProductTotal</span></h3>
+            <a href="/" class="btn btn-sm btn-outline-secondary">✕ Xóa bộ lọc</a>
+        </div>
+        @if (!Model.Products.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <div class="display-4">🔍</div>
+                <p>Không tìm thấy sản phẩm phù hợp</p>
+                <a href="/" class="btn btn-outline-primary">Xem tất cả</a>
+            </div>
+        }
+        else
+        {
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+            @foreach (var p in Model.Products)
+            {
+                var em = p.Category switch { "Food"=>"🍖","Accessory"=>"🎀","Medicine"=>"💊","Toy"=>"🎾",_=>"📦" };
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" style="transition:transform .2s,box-shadow .2s"
+                         onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+                         onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) {
+                            <img src="@p.ImageUrl" class="card-img-top" style="height:170px;object-fit:cover" alt="@p.Name"/>
+                        } else {
+                            <div class="d-flex align-items-center justify-content-center bg-light rounded-top" style="height:150px;font-size:3.5rem">@em</div>
+                        }
+                        <div class="card-body">
+                            <span class="badge bg-light text-dark border mb-1">@p.Category</span>
+                            <h6 class="card-title fw-bold text-truncate">@p.Name</h6>
+                            <p class="card-text text-muted small text-truncate">@p.Description</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-primary fw-bold">@p.Price.ToString("N0")đ</span>
+                                @if (p.Stock > 0) {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Còn @p.Stock</span>
+                                } else {
+                                    <span class="badge bg-danger-subtle text-danger">Hết hàng</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top d-flex gap-2">
+                            <a href="/Products/Detail/@p.Id" class="btn btn-outline-primary btn-sm flex-grow-1">👁 Chi tiết</a>
+                            @if (p.Stock > 0) {
+                                <button class="btn btn-primary btn-sm" onclick="addToCart('product',@p.Id,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price)">🛒</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            </div>
+            @if (Model.ProductPages > 1)
+            {
+                <nav class="d-flex justify-content-center mt-4">
+                    <ul class="pagination pagination-sm">
+                        <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                            <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&page=@(Model.CurrentPage-1)">‹</a>
+                        </li>
+                        @for (int pg = Math.Max(1, Model.CurrentPage-2); pg <= Math.Min(Model.ProductPages, Model.CurrentPage+2); pg++)
+                        {
+                            <li class="page-item @(pg == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&page=@pg">@pg</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.CurrentPage >= Model.ProductPages ? "disabled" : "")">
+                            <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&page=@(Model.CurrentPage+1)">›</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        }
+    </section>
+}
+else
+{
+    <!-- Trang chủ: 3 section riêng -->
+
+    <!-- ── Thức ăn ── -->
+    @if (Model.FoodProducts.Any())
+    {
+        <section id="food" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="fw-bold mb-0">🍖 Thức ăn</h3>
+                <a href="?category=Food" class="btn btn-sm btn-outline-primary">Xem tất cả →</a>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+            @foreach (var p in Model.FoodProducts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" style="transition:transform .2s,box-shadow .2s"
+                         onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+                         onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) {
+                            <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+                        } else {
+                            <div class="d-flex align-items-center justify-content-center bg-light rounded-top" style="height:140px;font-size:3rem">🍖</div>
+                        }
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-truncate">@p.Name</h6>
+                            <p class="card-text text-muted small text-truncate">@p.Description</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-primary fw-bold">@p.Price.ToString("N0")đ</span>
+                                @if (p.Stock > 0) {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Còn @p.Stock</span>
+                                } else {
+                                    <span class="badge bg-danger-subtle text-danger">Hết hàng</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top d-flex gap-2">
+                            <a href="/Products/Detail/@p.Id" class="btn btn-outline-primary btn-sm flex-grow-1">👁 Chi tiết</a>
+                            @if (p.Stock > 0) {
+                                <button class="btn btn-primary btn-sm" onclick="addToCart('product',@p.Id,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price)">🛒</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            </div>
+        </section>
+        <hr class="my-4"/>
+    }
+
+    <!-- ── Đồ chơi ── -->
+    @if (Model.ToyProducts.Any())
+    {
+        <section id="toys" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="fw-bold mb-0">🎾 Đồ chơi</h3>
+                <a href="?category=Toy" class="btn btn-sm btn-outline-primary">Xem tất cả →</a>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+            @foreach (var p in Model.ToyProducts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" style="transition:transform .2s,box-shadow .2s"
+                         onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+                         onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) {
+                            <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+                        } else {
+                            <div class="d-flex align-items-center justify-content-center bg-light rounded-top" style="height:140px;font-size:3rem">🎾</div>
+                        }
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-truncate">@p.Name</h6>
+                            <p class="card-text text-muted small text-truncate">@p.Description</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-primary fw-bold">@p.Price.ToString("N0")đ</span>
+                                @if (p.Stock > 0) {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Còn @p.Stock</span>
+                                } else {
+                                    <span class="badge bg-danger-subtle text-danger">Hết hàng</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top d-flex gap-2">
+                            <a href="/Products/Detail/@p.Id" class="btn btn-outline-primary btn-sm flex-grow-1">👁 Chi tiết</a>
+                            @if (p.Stock > 0) {
+                                <button class="btn btn-primary btn-sm" onclick="addToCart('product',@p.Id,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price)">🛒</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            </div>
+        </section>
+        <hr class="my-4"/>
+    }
+
+    <!-- ── Phụ kiện ── -->
+    @if (Model.AccessoryProducts.Any())
+    {
+        <section id="accessories" class="mb-5">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="fw-bold mb-0">🎀 Phụ kiện</h3>
+                <a href="?category=Accessory" class="btn btn-sm btn-outline-primary">Xem tất cả →</a>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
+            @foreach (var p in Model.AccessoryProducts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0" style="transition:transform .2s,box-shadow .2s"
+                         onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+                         onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl)) {
+                            <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+                        } else {
+                            <div class="d-flex align-items-center justify-content-center bg-light rounded-top" style="height:140px;font-size:3rem">🎀</div>
+                        }
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-truncate">@p.Name</h6>
+                            <p class="card-text text-muted small text-truncate">@p.Description</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="text-primary fw-bold">@p.Price.ToString("N0")đ</span>
+                                @if (p.Stock > 0) {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Còn @p.Stock</span>
+                                } else {
+                                    <span class="badge bg-danger-subtle text-danger">Hết hàng</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-top d-flex gap-2">
+                            <a href="/Products/Detail/@p.Id" class="btn btn-outline-primary btn-sm flex-grow-1">👁 Chi tiết</a>
+                            @if (p.Stock > 0) {
+                                <button class="btn btn-primary btn-sm" onclick="addToCart('product',@p.Id,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price)">🛒</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            </div>
+        </section>
+        <hr class="my-4"/>
+    }
+}
+
+<!-- ────── PETS SECTION ────── -->
+<section id="pets" class="mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="fw-bold mb-0">🐾 Thú cưng <span class="badge bg-success">@Model.PetTotal</span></h3>
+    </div>
+    @if (!Model.Pets.Any())
+    {
+        <div class="text-center py-5 text-muted">
+            <div class="display-4">🐾</div>
+            <p>Không tìm thấy thú cưng phù hợp</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+        @foreach (var p in Model.Pets)
+        {
+            var em2 = p.Category switch { "Dog"=>"🐕","Cat"=>"🐈","Bird"=>"🐦","Fish"=>"🐟","Rabbit"=>"🐇",_=>"🐾" };
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0" style="transition:transform .2s,box-shadow .2s"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    @if (!string.IsNullOrEmpty(p.ImageUrl)) {
+                        <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+                    } else {
+                        <div class="d-flex align-items-center justify-content-center bg-light rounded-top" style="height:130px;font-size:4rem">@em2</div>
+                    }
+                    <div class="card-body">
+                        <span class="badge bg-light text-dark border mb-1">@p.Category</span>
+                        <h6 class="card-title fw-bold">@p.Name</h6>
+                        <p class="card-text text-muted small">@p.Breed · @p.AgeMonths tháng tuổi</p>
+                        <div class="fw-bold text-success">@p.Price.ToString("N0")đ</div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top d-flex gap-2">
+                        <a href="/Pets/Detail/@p.Id" class="btn btn-outline-success btn-sm flex-grow-1">👁 Xem chi tiết</a>
+                        @if (p.Status == "Available") {
+                            <button class="btn btn-success btn-sm" onclick="addToCart('pet',@p.Id,'@Html.Raw(p.Name.Replace("'","\\'"))',@p.Price)">🛒</button>
+                        } else {
+                            <span class="badge bg-secondary align-self-center">Đã bán</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        </div>
+        @if (Model.PetPages > 1)
+        {
+            <nav class="d-flex justify-content-center mt-4">
+                <ul class="pagination pagination-sm">
+                    <li class="page-item @(Model.PetPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&petPage=@(Model.PetPage-1)#pets">‹</a>
+                    </li>
+                    @for (int pg = Math.Max(1, Model.PetPage-2); pg <= Math.Min(Model.PetPages, Model.PetPage+2); pg++)
+                    {
+                        <li class="page-item @(pg == Model.PetPage ? "active" : "")">
+                            <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&petPage=@pg#pets">@pg</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.PetPage >= Model.PetPages ? "disabled" : "")">
+                        <a class="page-link" href="?search=@Model.Search&category=@Model.Category&minPrice=@Model.MinPrice&maxPrice=@Model.MaxPrice&petPage=@(Model.PetPage+1)#pets">›</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</section>
+
+@section Scripts {
+<script>
+function addToCart(type, id, name, price) {
+    const cart = JSON.parse(sessionStorage.getItem('petshop_cart') || '[]');
+    const ex   = cart.find(i => i.type === type && i.id === id);
+    if (ex) { if (type === 'pet') { alert('Thú cưng đã có trong giỏ hàng.'); return; } ex.qty++; }
+    else cart.push({ type, id, name, price, qty: 1 });
+    sessionStorage.setItem('petshop_cart', JSON.stringify(cart));
+    updateCartBadge();
+    const toastMsg = document.getElementById('cart-toast-msg');
+    const toastEl  = document.getElementById('cart-toast');
+    if (toastEl && toastMsg) {
+        toastEl.className = 'toast align-items-center text-bg-success border-0';
+        toastMsg.textContent = `✅ Đã thêm "${name}" vào giỏ hàng!`;
+        new bootstrap.Toast(toastEl, { delay: 2500 }).show();
+    }
+}
+// Alias để tương thích code cũ
+function addToCartFromIndex(t,i,n,p){ addToCart(t,i,n,p); }
+</script>
+}

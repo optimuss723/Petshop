@@ -1,0 +1,222 @@
+@page
+@model PetShop.Client.Pages.User.DashboardModel
+@{ ViewData["Title"] = "Trang cá nhân"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-0 fw-semibold">👤 Trang cá nhân</h5>
+        <small class="text-muted">Xin chào, @Model.FullName</small>
+    </div>
+    <div id="signalr-badge" class="badge bg-secondary">Đang kết nối...</div>
+</div>
+
+@* Thông báo đặt hàng thành công *@
+@if (!string.IsNullOrEmpty(Model.OrderSuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-3 mb-4" role="alert">
+        <div style="font-size:2rem">✅</div>
+        <div>
+            <div class="fw-semibold fs-5">@Model.OrderSuccessMessage</div>
+            <div class="small">Chúng tôi đã ghi nhận đơn hàng của bạn và sẽ sớm xử lý.</div>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div id="order-status-alerts"></div>
+
+<!-- Thống kê nhanh -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-0 bg-warning bg-opacity-10">
+            <div class="card-body">
+                <div class="fs-3 fw-bold text-warning">@Model.PendingCount</div>
+                <div class="small text-muted">Đang chờ</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-0 bg-primary bg-opacity-10">
+            <div class="card-body">
+                <div class="fs-3 fw-bold text-primary">@Model.ShippingCount</div>
+                <div class="small text-muted">Đang giao/chờ nhận</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-0 bg-success bg-opacity-10">
+            <div class="card-body">
+                <div class="fs-3 fw-bold text-success">@Model.DeliveredCount</div>
+                <div class="small text-muted">Đã nhận</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center border-0 bg-info bg-opacity-10">
+            <div class="card-body">
+                <div class="fs-3 fw-bold text-info">@Model.TotalSpent.ToString("N0")đ</div>
+                <div class="small text-muted">Đã chi tiêu</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Cập nhật profile -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header fw-semibold">⚙️ Thông tin cá nhân</div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.ProfileMessage))
+                {
+                    <div class="alert alert-success py-2 small">@Model.ProfileMessage</div>
+                }
+                <form method="post" asp-page-handler="UpdateProfile">
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Họ tên</label>
+                        <input asp-for="ProfileInput.FullName" class="form-control form-control-sm"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Số điện thoại</label>
+                        <input asp-for="ProfileInput.Phone" class="form-control form-control-sm"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-medium">Địa chỉ</label>
+                        <textarea asp-for="ProfileInput.Address" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">💾 Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Đơn hàng của tôi -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header fw-semibold">📦 Đơn hàng của tôi</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày đặt</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var o in Model.Orders)
+                    {
+                        var statusLabel = o.Status switch {
+                            "Pending" when o.IsCod => "Chờ xử lý COD",
+                            "Pending" => "Chờ PayOS",
+                            "Confirmed" => "Đã xác nhận",
+                            "Shipping" => "Đang giao",
+                            "AwaitingReceipt" => "Chờ bạn xác nhận",
+                            "Delivered" => "Đã nhận",
+                            "Cancelled" => "Đã hủy",
+                            _ => o.Status
+                        };
+                        <tr>
+                            <td>#@o.Id</td>
+                            <td class="fw-semibold">@o.TotalAmount.ToString("N0")đ</td>
+                            <td>
+                                <span class="badge @(o.Status switch {
+                                    "Pending"   => "bg-warning text-dark",
+                                    "Confirmed" => "bg-info",
+                                    "Shipping"  => "bg-primary",
+                                    "AwaitingReceipt" => "bg-warning text-dark",
+                                    "Delivered" => "bg-success",
+                                    _           => "bg-secondary"
+                                })">@statusLabel</span>
+                            </td>
+                            <td class="small">@o.CreatedAt.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (o.Status == "Pending")
+                                {
+                                    <form method="post" asp-page-handler="Cancel" style="display:inline"
+                                          onsubmit="return confirm('Huỷ đơn hàng #@o.Id?')">
+                                        <input type="hidden" name="id" value="@o.Id"/>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Huỷ</button>
+                                    </form>
+                                }
+                                @if (o.Status == "AwaitingReceipt")
+                                {
+                                    <form method="post" asp-page-handler="ConfirmReceived" style="display:inline"
+                                          onsubmit="return confirm('Bạn xác nhận đã nhận được đơn hàng #@o.Id?')">
+                                        <input type="hidden" name="id" value="@o.Id"/>
+                                        <button type="submit" class="btn btn-success btn-sm">Đã nhận</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Orders.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">Bạn chưa có đơn hàng nào</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+<script>
+@* Xóa giỏ hàng sau khi đặt hàng thành công *@
+@if (Model.ShouldClearCart)
+{
+    <text>
+    // Xóa cart khỏi sessionStorage (chỉ chạy 1 lần sau khi đặt hàng thành công)
+    sessionStorage.removeItem('petshop_cart');
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+    console.log('[Cart] Giỏ hàng đã được xóa sau khi đặt hàng thành công.');
+    </text>
+}
+
+const token  = '@HttpContext.Session.GetString("AccessToken")';
+const userId = '@HttpContext.Session.GetString("UserId")';
+const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders")';
+const conn   = new signalR.HubConnectionBuilder()
+    .withUrl(hubUrl, { accessTokenFactory: () => token })
+    .withAutomaticReconnect()
+    .build();
+
+conn.on("OrderStatusChanged", data => {
+    const alerts = document.getElementById("order-status-alerts");
+    const statusMap = {
+        Confirmed: 'Đã xác nhận',
+        Shipping: 'Đang giao',
+        AwaitingReceipt: 'Chờ bạn xác nhận đã nhận',
+        Delivered: 'Đã nhận hàng',
+        Cancelled: 'Đã hủy'
+    };
+    const statusLabel = statusMap[data.newStatus ?? data.status] ?? (data.newStatus ?? data.status);
+    alerts.insertAdjacentHTML("afterbegin", `
+        <div class="alert alert-info alert-dismissible fade show">
+            🔔 <strong>Đơn hàng #${data.orderId ?? data.id}</strong> đã được cập nhật trạng thái:
+            <strong>${statusLabel}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>`);
+    // Reload danh sách đơn hàng sau 1.5s để hiện trạng thái mới
+    setTimeout(() => location.reload(), 1500);
+});
+
+conn.start()
+    .then(async () => {
+        const badge = document.getElementById("signalr-badge");
+        badge.className   = "badge bg-success";
+        badge.textContent = "🟢 Đã kết nối";
+        // Join user group để nhận thông báo cá nhân
+        await conn.invoke("JoinUserGroup", userId);
+    })
+    .catch(() => {
+        const badge = document.getElementById("signalr-badge");
+        badge.className   = "badge bg-danger";
+        badge.textContent = "🔴 Mất kết nối";
+    });
+</script>
+}

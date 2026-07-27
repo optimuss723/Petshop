@@ -1,0 +1,127 @@
+@page
+@model PetShop.Client.Pages.User.ProfileModel
+@{ ViewData["Title"] = "Hồ sơ cá nhân"; }
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show">
+        @Model.Message <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- Cập nhật thông tin -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">👤 Thông tin cá nhân</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="UpdateProfile">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Họ tên</label>
+                        <input asp-for="FullName" class="form-control" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Số điện thoại</label>
+                        <input asp-for="Phone" class="form-control" type="tel"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Địa chỉ giao hàng mặc định</label>
+                        <textarea asp-for="Address" class="form-control" rows="2" placeholder="123 Đường ABC, Quận 1, TP.HCM"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">💾 Lưu thay đổi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Đổi mật khẩu -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">🔐 Đổi mật khẩu</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="ChangePassword">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật khẩu hiện tại</label>
+                        <input asp-for="CurrentPassword" type="password" class="form-control" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mật khẩu mới</label>
+                        <input asp-for="NewPassword" type="password" class="form-control" required minlength="6"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Xác nhận mật khẩu mới</label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" required minlength="6"/>
+                    </div>
+                    <button type="submit" class="btn btn-warning w-100">🔑 Đổi mật khẩu</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wishlist (#15) -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold">❤️ Danh sách yêu thích</span>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearWishlist()">Xóa tất cả</button>
+            </div>
+            <div class="card-body">
+                <div id="wishlistContainer" class="row g-3">
+                    <div class="text-center text-muted py-3" id="wishEmpty">Chưa có sản phẩm yêu thích</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function getWishlist() { return JSON.parse(localStorage.getItem('petshop_wishlist') || '[]'); }
+function saveWishlist(l) { localStorage.setItem('petshop_wishlist', JSON.stringify(l)); }
+
+function renderWishlist() {
+    const list = getWishlist();
+    const container = document.getElementById('wishlistContainer');
+    const empty     = document.getElementById('wishEmpty');
+
+    if (list.length === 0) { empty.style.display='block'; return; }
+    empty.style.display = 'none';
+
+    container.innerHTML = '<div class="text-center text-muted py-3" id="wishEmpty" style="display:none">Chưa có sản phẩm yêu thích</div>';
+
+    list.forEach(item => {
+        const detailUrl = item.type === 'product' ? `/Products/Detail/${item.id}` : `/Pets/Detail/${item.id}`;
+        const emoji     = { Dog:'🐕',Cat:'🐈',Bird:'🐦',Fish:'🐟',Food:'🍖',Accessory:'🎀',Medicine:'💊',Toy:'🎾' }[item.category] || '📦';
+        const col = document.createElement('div');
+        col.className = 'col-6 col-md-3';
+        col.innerHTML = `
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="fs-1">${emoji}</div>
+                    <div class="fw-semibold text-truncate">${item.name}</div>
+                    <div class="text-primary fw-bold">${Number(item.price).toLocaleString('vi-VN')}đ</div>
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-1">
+                    <a href="${detailUrl}" class="btn btn-sm btn-outline-primary flex-grow-1">Xem</a>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeWish('${item.type}',${item.id})">🗑️</button>
+                </div>
+            </div>`;
+        container.appendChild(col);
+    });
+}
+
+function removeWish(type, id) {
+    const list = getWishlist().filter(x => !(x.type===type && x.id===id));
+    saveWishlist(list);
+    renderWishlist();
+}
+
+function clearWishlist() {
+    if (!confirm('Xóa toàn bộ danh sách yêu thích?')) return;
+    localStorage.removeItem('petshop_wishlist');
+    renderWishlist();
+}
+
+renderWishlist();
+</script>
+}

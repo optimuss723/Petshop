@@ -1,0 +1,123 @@
+### ============================================================
+### 🌐 API GATEWAY — Test toàn bộ luồng qua cổng duy nhất
+### URL: http://localhost:5000  (Ocelot Gateway)
+### ============================================================
+### Đây là cách CLIENT thực sự giao tiếp với hệ thống.
+### Mọi request đều đi qua Gateway → forward đến đúng service.
+### ============================================================
+
+@gatewayUrl = http://localhost:5000
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 1: ĐĂNG NHẬP QUA GATEWAY → AUTH SERVICE
+# ════════════════════════════════════════════════════════════════
+
+# → Gateway forward đến Auth.Service:5001
+POST {{gatewayUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@petshop.com",
+  "password": "Admin@123"
+}
+
+###
+
+# Copy token từ response, paste vào đây:
+@token = PASTE_TOKEN_FROM_LOGIN_RESPONSE
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 2: XEM SẢN PHẨM QUA GATEWAY → CATALOG SERVICE
+# ════════════════════════════════════════════════════════════════
+
+# → Gateway forward đến Catalog.Service:5002
+GET {{gatewayUrl}}/api/products
+Accept: application/json
+
+###
+
+GET {{gatewayUrl}}/api/pets
+Accept: application/json
+
+###
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 3: ĐĂNG NHẬP CUSTOMER
+# ════════════════════════════════════════════════════════════════
+
+POST {{gatewayUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@petshop.com",
+  "password": "Customer@123"
+}
+
+###
+
+@customerToken = PASTE_CUSTOMER_TOKEN_HERE
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 4: TẠO ĐƠN HÀNG QUA GATEWAY → ORDER SERVICE
+# ════════════════════════════════════════════════════════════════
+
+# → Gateway kiểm tra JWT → forward đến Order.Service:5003
+POST {{gatewayUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "items": [
+    { "productId": 1, "petId": null, "quantity": 2, "unitPrice": 350000 },
+    { "productId": null, "petId": 2,  "quantity": 1, "unitPrice": 4500000 }
+  ],
+  "shippingAddress": "123 Test Street, Q1",
+  "note": "Test qua Gateway"
+}
+
+###
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 5: XEM ĐƠN HÀNG QUA GATEWAY
+# ════════════════════════════════════════════════════════════════
+
+GET {{gatewayUrl}}/api/orders/my
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 6: XEM HỒ SƠ QUA GATEWAY → USER SERVICE
+# ════════════════════════════════════════════════════════════════
+
+GET {{gatewayUrl}}/api/users/me
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ════════════════════════════════════════════════════════════════
+#  BƯỚC 7: CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG (STAFF) QUA GATEWAY
+# ════════════════════════════════════════════════════════════════
+
+# Đăng nhập Staff trước
+POST {{gatewayUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff@petshop.com",
+  "password": "Staff@123"
+}
+
+###
+
+@staffToken = PASTE_STAFF_TOKEN_HERE
+
+PATCH {{gatewayUrl}}/api/orders/1/status
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "status": "Confirmed"
+}
+
+###

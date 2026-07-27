@@ -1,0 +1,164 @@
+@page
+@model PetShop.Client.Pages.Staff.Categories.IndexModel
+@{
+    ViewData["Title"] = "Quản lý Danh mục";
+    Layout = "/Pages/Staff/Shared/_Layout.cshtml";
+}
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert @(Model.Message.StartsWith("✅") ? "alert-success" : "alert-info") alert-dismissible fade show">
+        @Model.Message <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1 fw-semibold">🏷️ Quản lý Danh mục</h4>
+        <div class="text-muted small">Thêm, sửa, xóa danh mục sản phẩm và thú cưng.</div>
+    </div>
+    <button class="btn btn-success btn-sm px-3" data-bs-toggle="modal" data-bs-target="#categoryModal"
+            onclick="openCreate()">
+        <i class="bi bi-plus-lg me-1"></i>Thêm danh mục
+    </button>
+</div>
+
+<div class="row g-4">
+    <!-- Danh mục Sản phẩm -->
+    <div class="col-md-6">
+        <div class="data-table">
+            <div class="p-3 border-bottom d-flex align-items-center gap-2">
+                <span class="fs-5">🛍️</span>
+                <span class="fw-semibold">Danh mục Sản phẩm</span>
+                <span class="badge bg-primary ms-auto">@Model.Categories.Count(c => c.Type == "Product")</span>
+            </div>
+            <div class="list-group list-group-flush">
+            @foreach (var c in Model.Categories.Where(c => c.Type == "Product"))
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <span>
+                        @if (!string.IsNullOrEmpty(c.Icon)) { <span class="me-1">@c.Icon</span> }
+                        <strong>@c.Name</strong>
+                        @if (!string.IsNullOrEmpty(c.Description)) { <small class="text-muted ms-2">@c.Description</small> }
+                    </span>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-outline-primary btn-sm"
+                                onclick="openEdit(@c.Id, '@c.Name', '@c.Type', '@(c.Description ?? "")', '@(c.Icon ?? "")')">
+                            ✏️
+                        </button>
+                        <form method="post" asp-page-handler="Delete" class="d-inline"
+                              onsubmit="return confirm('Xóa danh mục @c.Name?')">
+                            <input type="hidden" name="id" value="@c.Id"/>
+                            <button class="btn btn-outline-danger btn-sm">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            @if (!Model.Categories.Any(c => c.Type == "Product"))
+            {
+                <div class="text-muted text-center py-4">Chưa có danh mục sản phẩm</div>
+            }
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh mục Thú cưng -->
+    <div class="col-md-6">
+        <div class="data-table">
+            <div class="p-3 border-bottom d-flex align-items-center gap-2">
+                <span class="fs-5">🐾</span>
+                <span class="fw-semibold">Danh mục Thú cưng</span>
+                <span class="badge bg-success ms-auto">@Model.Categories.Count(c => c.Type == "Pet")</span>
+            </div>
+            <div class="list-group list-group-flush">
+            @foreach (var c in Model.Categories.Where(c => c.Type == "Pet"))
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <span>
+                        @if (!string.IsNullOrEmpty(c.Icon)) { <span class="me-1">@c.Icon</span> }
+                        <strong>@c.Name</strong>
+                        @if (!string.IsNullOrEmpty(c.Description)) { <small class="text-muted ms-2">@c.Description</small> }
+                    </span>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-outline-primary btn-sm"
+                                onclick="openEdit(@c.Id, '@c.Name', '@c.Type', '@(c.Description ?? "")', '@(c.Icon ?? "")')">
+                            ✏️
+                        </button>
+                        <form method="post" asp-page-handler="Delete" class="d-inline"
+                              onsubmit="return confirm('Xóa danh mục @c.Name?')">
+                            <input type="hidden" name="id" value="@c.Id"/>
+                            <button class="btn btn-outline-danger btn-sm">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            @if (!Model.Categories.Any(c => c.Type == "Pet"))
+            {
+                <div class="text-muted text-center py-4">Chưa có danh mục thú cưng</div>
+            }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tạo/Sửa -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Save">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Thêm danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditId" id="editId"/>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
+                        <input asp-for="Name" id="catName" class="form-control" required placeholder="VD: Thức ăn chó"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại <span class="text-danger">*</span></label>
+                        <select asp-for="Type" id="catType" class="form-select">
+                            <option value="Product">🛍️ Sản phẩm</option>
+                            <option value="Pet">🐾 Thú cưng</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Icon (emoji)</label>
+                        <input asp-for="Icon" id="catIcon" class="form-control" placeholder="🍖"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea asp-for="Description" id="catDesc" class="form-control" rows="2" placeholder="Mô tả ngắn..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-success">💾 Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function openCreate() {
+    document.getElementById('modalTitle').textContent = 'Thêm danh mục mới';
+    document.getElementById('editId').value   = '';
+    document.getElementById('catName').value  = '';
+    document.getElementById('catType').value  = 'Product';
+    document.getElementById('catIcon').value  = '';
+    document.getElementById('catDesc').value  = '';
+}
+function openEdit(id, name, type, desc, icon) {
+    document.getElementById('modalTitle').textContent = 'Sửa danh mục';
+    document.getElementById('editId').value   = id;
+    document.getElementById('catName').value  = name;
+    document.getElementById('catType').value  = type;
+    document.getElementById('catIcon').value  = icon;
+    document.getElementById('catDesc').value  = desc;
+    new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+</script>
+}

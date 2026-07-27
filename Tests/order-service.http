@@ -1,0 +1,160 @@
+### ============================================================
+### 📦 ORDER SERVICE — Test vòng đời đơn hàng
+### URL: http://localhost:5003
+### ============================================================
+### ⚠️ Thay TOKEN bằng access token từ auth-service.http
+### Luồng đúng: Customer tạo đơn → Staff xác nhận → Giao hàng
+### ============================================================
+
+@orderUrl      = http://localhost:5003
+@adminToken    = PASTE_ADMIN_TOKEN_HERE
+@staffToken    = PASTE_STAFF_TOKEN_HERE
+@customerToken = PASTE_CUSTOMER_TOKEN_HERE
+
+# ── GET: Admin xem tất cả đơn hàng ───────────────────────────
+GET {{orderUrl}}/api/orders
+Authorization: Bearer {{adminToken}}
+
+###
+
+# ── GET: Customer xem đơn hàng của mình ──────────────────────
+GET {{orderUrl}}/api/orders/my
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ── GET: Xem đơn hàng theo ID ─────────────────────────────────
+GET {{orderUrl}}/api/orders/1
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ── POST: Customer tạo đơn hàng MUA SẢN PHẨM ─────────────────
+POST {{orderUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "items": [
+    {
+      "productId": 1,
+      "petId": null,
+      "quantity": 2,
+      "unitPrice": 350000
+    },
+    {
+      "productId": 3,
+      "petId": null,
+      "quantity": 1,
+      "unitPrice": 120000
+    }
+  ],
+  "shippingAddress": "456 Nguyễn Huệ, Q1, TP.HCM",
+  "note": "Giao buổi sáng"
+}
+
+###
+
+# ── POST: Customer tạo đơn hàng MUA THÚ CƯNG ─────────────────
+POST {{orderUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "items": [
+    {
+      "productId": null,
+      "petId": 2,
+      "quantity": 1,
+      "unitPrice": 4500000
+    }
+  ],
+  "shippingAddress": "789 Trần Hưng Đạo, Q5, TP.HCM",
+  "note": null
+}
+
+###
+
+# ── POST: Customer tạo đơn MIX (sản phẩm + thú cưng) ─────────
+POST {{orderUrl}}/api/orders
+Content-Type: application/json
+Authorization: Bearer {{customerToken}}
+
+{
+  "items": [
+    {
+      "productId": 2,
+      "petId": null,
+      "quantity": 3,
+      "unitPrice": 45000
+    },
+    {
+      "productId": null,
+      "petId": 1,
+      "quantity": 1,
+      "unitPrice": 8500000
+    }
+  ],
+  "shippingAddress": "10 Đinh Tiên Hoàng, Bình Thạnh",
+  "note": "Giao cẩn thận thú cưng"
+}
+
+###
+
+# ── PATCH: Staff xác nhận đơn hàng (Pending → Confirmed) ─────
+PATCH {{orderUrl}}/api/orders/1/status
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "status": "Confirmed"
+}
+
+###
+
+# ── PATCH: Staff chuyển sang đang giao (Confirmed → Shipping) ─
+PATCH {{orderUrl}}/api/orders/1/status
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "status": "Shipping"
+}
+
+###
+
+# ── PATCH: Staff đánh dấu đã giao (Shipping → Delivered) ──────
+PATCH {{orderUrl}}/api/orders/1/status
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "status": "Delivered"
+}
+
+###
+
+# ── DELETE: Customer hủy đơn hàng (chỉ khi Pending) ───────────
+# Tạo đơn mới trước rồi lấy ID để hủy
+DELETE {{orderUrl}}/api/orders/2
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ── DELETE: Customer hủy đơn đã Confirmed (kiểm tra lỗi) ──────
+DELETE {{orderUrl}}/api/orders/1
+Authorization: Bearer {{customerToken}}
+
+###
+
+# ── GET: Kiểm tra không có token → 401 ────────────────────────
+GET {{orderUrl}}/api/orders
+Accept: application/json
+
+###
+
+# ── GET: Customer cố xem tất cả đơn → 403 ────────────────────
+GET {{orderUrl}}/api/orders
+Authorization: Bearer {{customerToken}}
+
+###

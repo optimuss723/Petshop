@@ -1,0 +1,135 @@
+@page
+@model PetShop.Client.Pages.Admin.Categories.IndexModel
+@{ ViewData["Title"] = "Quản lý Danh mục"; }
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-info alert-dismissible fade show">
+        @Model.Message <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">🏷️ Quản lý Danh mục</h4>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal"
+            onclick="openCreate()">
+        <i class="bi bi-plus-lg me-1"></i>Thêm danh mục
+    </button>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <h6 class="fw-semibold mb-3">🛍️ Danh mục Sản phẩm</h6>
+        <div class="list-group">
+        @foreach (var c in Model.Categories.Where(c => c.Type == "Product"))
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@c.Icon <strong>@c.Name</strong> <small class="text-muted ms-1">@c.Description</small></span>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-outline-primary btn-sm"
+                            onclick="openEdit(@c.Id, '@c.Name', '@c.Type', '@(c.Description ?? "")', '@(c.Icon ?? "")')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <form method="post" asp-page-handler="Delete" class="d-inline"
+                          onsubmit="return confirm('Xóa danh mục @c.Name?')">
+                        <input type="hidden" name="id" value="@c.Id"/>
+                        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        }
+        @if (!Model.Categories.Any(c => c.Type == "Product"))
+        {
+            <div class="text-muted text-center py-3">Chưa có danh mục sản phẩm</div>
+        }
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h6 class="fw-semibold mb-3">🐾 Danh mục Thú cưng</h6>
+        <div class="list-group">
+        @foreach (var c in Model.Categories.Where(c => c.Type == "Pet"))
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@c.Icon <strong>@c.Name</strong> <small class="text-muted ms-1">@c.Description</small></span>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-outline-primary btn-sm"
+                            onclick="openEdit(@c.Id, '@c.Name', '@c.Type', '@(c.Description ?? "")', '@(c.Icon ?? "")')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <form method="post" asp-page-handler="Delete" class="d-inline"
+                          onsubmit="return confirm('Xóa danh mục @c.Name?')">
+                        <input type="hidden" name="id" value="@c.Id"/>
+                        <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        }
+        @if (!Model.Categories.Any(c => c.Type == "Pet"))
+        {
+            <div class="text-muted text-center py-3">Chưa có danh mục thú cưng</div>
+        }
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tạo/Sửa -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Save">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Thêm danh mục</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditId" id="editId"/>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên danh mục <span class="text-danger">*</span></label>
+                        <input asp-for="Name" id="catName" class="form-control" required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loại <span class="text-danger">*</span></label>
+                        <select asp-for="Type" id="catType" class="form-select">
+                            <option value="Product">🛍️ Sản phẩm</option>
+                            <option value="Pet">🐾 Thú cưng</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Icon (emoji)</label>
+                        <input asp-for="Icon" id="catIcon" class="form-control" placeholder="🍖"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả</label>
+                        <textarea asp-for="Description" id="catDesc" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function openCreate() {
+    document.getElementById('modalTitle').textContent = 'Thêm danh mục mới';
+    document.getElementById('editId').value = '';
+    document.getElementById('catName').value = '';
+    document.getElementById('catType').value = 'Product';
+    document.getElementById('catIcon').value = '';
+    document.getElementById('catDesc').value = '';
+}
+function openEdit(id, name, type, desc, icon) {
+    document.getElementById('modalTitle').textContent = 'Sửa danh mục';
+    document.getElementById('editId').value = id;
+    document.getElementById('catName').value = name;
+    document.getElementById('catType').value = type;
+    document.getElementById('catIcon').value = icon;
+    document.getElementById('catDesc').value = desc;
+    new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+</script>
+}

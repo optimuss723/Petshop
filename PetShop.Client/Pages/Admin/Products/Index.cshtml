@@ -1,0 +1,168 @@
+@page
+@model PetShop.Client.Pages.Admin.Products.IndexModel
+@{ ViewData["Title"] = "Quản lý Sản phẩm"; }
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0 fw-semibold">🛍️ Quản lý Sản phẩm</h5>
+    <a href="/Admin/Products/Edit" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filter Bar -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <input name="search" value="@Model.Search" class="form-control form-control-sm" placeholder="🔍 Tìm tên sản phẩm..."/>
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">Tất cả danh mục</option>
+                    <option value="Food"      selected="@(Model.Category=="Food")">🍖 Thức ăn</option>
+                    <option value="Accessory" selected="@(Model.Category=="Accessory")">🎀 Phụ kiện</option>
+                    <option value="Medicine"  selected="@(Model.Category=="Medicine")">💊 Thuốc</option>
+                    <option value="Toy"       selected="@(Model.Category=="Toy")">🎾 Đồ chơi</option>
+                    <option value="Grooming"  selected="@(Model.Category=="Grooming")">✂️ Grooming</option>
+                    <option value="Other"     selected="@(Model.Category=="Other")">📦 Khác</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="sort" class="form-select form-select-sm">
+                    <option value="CreatedAt desc" selected="@(Model.Sort=="CreatedAt desc")">Mới nhất</option>
+                    <option value="Name asc"       selected="@(Model.Sort=="Name asc")">Tên A-Z</option>
+                    <option value="Name desc"      selected="@(Model.Sort=="Name desc")">Tên Z-A</option>
+                    <option value="Price asc"      selected="@(Model.Sort=="Price asc")">Giá tăng dần</option>
+                    <option value="Price desc"     selected="@(Model.Sort=="Price desc")">Giá giảm dần</option>
+                    <option value="Stock asc"      selected="@(Model.Sort=="Stock asc")">Tồn kho thấp trước</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <select name="pageSize" class="form-select form-select-sm">
+                    <option value="5"  selected="@(Model.PageSize==5)">5</option>
+                    <option value="10" selected="@(Model.PageSize==10)">10</option>
+                    <option value="20" selected="@(Model.PageSize==20)">20</option>
+                    <option value="50" selected="@(Model.PageSize==50)">50</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Lọc</button>
+            </div>
+            <div class="col-md-1">
+                <a href="/Admin/Products" class="btn btn-outline-secondary btn-sm w-100">Xoá lọc</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@{
+    string CategoryIcon(string cat) => cat switch {
+        "Food"      => "🍖",
+        "Accessory" => "🎀",
+        "Medicine"  => "💊",
+        "Toy"       => "🎾",
+        "Grooming"  => "✂️",
+        _           => "📦"
+    };
+}
+
+<!-- Product Cards -->
+<div class="row row-cols-1 row-cols-md-3 row-cols-xl-4 g-3">
+@foreach (var p in Model.Products)
+{
+    <div class="col">
+        <div class="card h-100">
+            @if (!string.IsNullOrEmpty(p.ImageUrl))
+            {
+                <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+            }
+            else
+            {
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:160px;font-size:2.5rem">
+                    @CategoryIcon(p.Category)
+                </div>
+            }
+            <div class="card-body pb-2">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="card-title mb-0 fw-semibold" style="font-size:.9rem">@p.Name</h6>
+                    <span class="badge @(p.IsActive ? "bg-success" : "bg-danger") ms-1" style="font-size:.65rem;white-space:nowrap">
+                        @(p.IsActive ? "Đang bán" : "Ngừng")
+                    </span>
+                </div>
+                <p class="text-muted small mb-1 text-truncate">@p.Description</p>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <span class="fw-semibold text-primary">@p.Price.ToString("N0")đ</span>
+                    <span class="small @(p.Stock < 10 ? "text-danger fw-bold" : "text-muted")">
+                        Kho: @p.Stock
+                    </span>
+                </div>
+                <span class="badge bg-secondary mt-1" style="font-size:.65rem">@p.Category</span>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-2">
+                <a href="/Admin/Products/Edit/@p.Id" class="btn btn-outline-primary btn-sm flex-fill">Sửa</a>
+                <form method="post" asp-page-handler="Delete" class="flex-fill"
+                      onsubmit="return confirm('Xoá sản phẩm @p.Name?')">
+                    <input type="hidden" name="id" value="@p.Id"/>
+                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">Xoá</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+@if (!Model.Products.Any())
+{
+    <div class="col-12 text-center text-muted py-5">Không có sản phẩm nào</div>
+}
+</div>
+
+<!-- Pagination -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small mt-3">
+    <span>
+        Tổng: @Model.TotalCount sản phẩm
+        <span class="badge @(Model.UsedOData ? "bg-success" : "bg-secondary") ms-2">
+            @(Model.UsedOData ? "OData" : "Fallback API")
+        </span>
+    </span>
+    @if (Model.TotalPages > 1)
+    {
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-route-search="@Model.Search"
+                       asp-route-category="@Model.Category"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.PageNumber - 1)"
+                       asp-route-pageSize="@Model.PageSize">‹</a>
+                </li>
+                @for (var i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link"
+                           asp-route-search="@Model.Search"
+                           asp-route-category="@Model.Category"
+                           asp-route-sort="@Model.Sort"
+                           asp-route-page="@i"
+                           asp-route-pageSize="@Model.PageSize">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-route-search="@Model.Search"
+                       asp-route-category="@Model.Category"
+                       asp-route-sort="@Model.Sort"
+                       asp-route-page="@(Model.PageNumber + 1)"
+                       asp-route-pageSize="@Model.PageSize">›</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>

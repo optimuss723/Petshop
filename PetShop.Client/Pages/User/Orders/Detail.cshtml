@@ -1,0 +1,164 @@
+@page "{id:int}"
+@model PetShop.Client.Pages.User.Orders.DetailModel
+@{
+    ViewData["Title"] = $"Chi tiết đơn hàng #{Model.Order?.Id}";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="/User/Orders" class="btn btn-outline-secondary btn-sm">← Quay lại</a>
+        <div>
+            <h5 class="mb-0 fw-bold">📦 Chi tiết đơn hàng #@Model.Order?.Id</h5>
+            <small class="text-muted">Theo dõi thanh toán, vận chuyển và sản phẩm trong đơn</small>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    var alertClass = Model.Message.StartsWith("✅") ? "alert-success" : "alert-danger";
+    <div class="alert @alertClass alert-dismissible fade show">
+        @Model.Message
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (Model.Order == null)
+{
+    <div class="alert alert-danger">Không tìm thấy đơn hàng.</div>
+}
+else
+{
+    var o = Model.Order;
+    var statusLabel = o.Status switch {
+        "Pending" when o.IsCod => "Chờ shop xác nhận",
+        "Pending" => "Chờ thanh toán PayOS",
+        "Confirmed" when o.IsCod => "Shop đã xác nhận COD",
+        "Confirmed" => "Đã thanh toán PayOS",
+        "Shipping" => "Đang giao",
+        "AwaitingReceipt" => "Chờ bạn xác nhận đã nhận",
+        "Delivered" => "Đã nhận",
+        "Cancelled" => "Đã hủy",
+        _ => o.Status
+    };
+    var statusBadge = o.Status switch {
+        "Pending" => "bg-warning text-dark",
+        "Confirmed" => "bg-info",
+        "Shipping" => "bg-primary",
+        "AwaitingReceipt" => "bg-warning text-dark",
+        "Delivered" => "bg-success",
+        "Cancelled" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+    var paymentLabel = o.PaymentStatus switch {
+        "Paid" => "PayOS đã thanh toán",
+        "PayOSPending" => "PayOS chờ thanh toán",
+        "CODCollected" => "COD đã thu",
+        "Cancelled" => "Đã hủy",
+        _ => "COD thu khi giao"
+    };
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header fw-semibold">Thông tin đơn</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-5 text-muted">Mã đơn</dt>
+                        <dd class="col-7">#@o.Id</dd>
+                        <dt class="col-5 text-muted">Trạng thái</dt>
+                        <dd class="col-7"><span class="badge @statusBadge">@statusLabel</span></dd>
+                        <dt class="col-5 text-muted">Thanh toán</dt>
+                        <dd class="col-7">@paymentLabel</dd>
+                        <dt class="col-5 text-muted">Tổng tiền</dt>
+                        <dd class="col-7 fw-bold text-primary">@o.TotalAmount.ToString("N0")đ</dd>
+                        <dt class="col-5 text-muted">Địa chỉ</dt>
+                        <dd class="col-7">@o.ShippingAddress</dd>
+                        @if (!string.IsNullOrEmpty(o.Note))
+                        {
+                            <dt class="col-5 text-muted">Ghi chú</dt>
+                            <dd class="col-7">@o.Note</dd>
+                        }
+                        <dt class="col-5 text-muted">Ngày đặt</dt>
+                        <dd class="col-7">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                    </dl>
+
+                    @if (!string.IsNullOrEmpty(o.TrackingCode))
+                    {
+                        <hr/>
+                        <div class="fw-semibold mb-1">Vận chuyển</div>
+                        <div>@o.ShippingProvider</div>
+                        <div class="font-monospace text-primary">@o.TrackingCode</div>
+                        @if (!string.IsNullOrEmpty(o.TrackingUrl))
+                        {
+                            <a href="@o.TrackingUrl" target="_blank" class="btn btn-sm btn-primary mt-2">Tra cứu vận đơn</a>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header fw-semibold">Sản phẩm trong đơn</div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mặt hàng</th>
+                                <th class="text-center">SL</th>
+                                <th class="text-end">Đơn giá</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in o.Items ?? Enumerable.Empty<PetShop.Shared.DTOs.Response.OrderItemResponse>())
+                        {
+                            var itemName = item.ProductName ?? item.PetName;
+                            var itemType = item.ProductId.HasValue ? "Sản phẩm" : "Thú cưng";
+                            var itemCode = item.ProductId ?? item.PetId;
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@(string.IsNullOrWhiteSpace(itemName) ? $"{itemType} #{itemCode}" : itemName)</div>
+                                    <div class="small text-muted">@itemType #@itemCode</div>
+                                </td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">@item.UnitPrice.ToString("N0")đ</td>
+                                <td class="text-end fw-semibold">@item.SubTotal.ToString("N0")đ</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
+                                <td class="text-end fw-bold text-primary">@o.TotalAmount.ToString("N0")đ</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                @if (o.Status == "Pending")
+                {
+                    <a asp-page="/User/PayOS" asp-route-orderId="@o.Id" class="btn btn-primary btn-sm">
+                        @(o.IsCod ? "Đổi sang PayOS" : "Tiếp tục thanh toán PayOS")
+                    </a>
+                    <form method="post" asp-page-handler="Cancel"
+                          onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng #@o.Id?')">
+                        <input type="hidden" name="id" value="@o.Id"/>
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Hủy đơn hàng</button>
+                    </form>
+                }
+                @if (o.Status == "AwaitingReceipt")
+                {
+                    <form method="post" asp-page-handler="ConfirmReceived"
+                          onsubmit="return confirm('Bạn xác nhận đã nhận được đơn hàng #@o.Id?')">
+                        <input type="hidden" name="id" value="@o.Id"/>
+                        <button type="submit" class="btn btn-success btn-sm">Đã nhận được hàng</button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+}
