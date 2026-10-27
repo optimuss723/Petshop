@@ -296,38 +296,71 @@ public class InventoryService : IInventoryService
         if (request.Items.Count == 0)
             return Fail<bool>("Don hang khong co mat hang.");
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
+        var strategy = _db.Database.CreateExecutionStrategy();
+        var success = false;
+        string? errorMessage = null;
 
-        foreach (var item in request.Items)
+        await strategy.ExecuteAsync(async () =>
         {
-            if (item.ProductId.HasValue == item.PetId.HasValue)
-                return Fail<bool>("Moi dong don hang phai chon dung mot san pham hoac mot thu cung.");
-
-            if (item.ProductId.HasValue)
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                var quantity = Math.Max(1, item.Quantity);
-                var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId.Value && p.IsActive);
-                if (product == null)
-                    return Fail<bool>($"San pham #{item.ProductId.Value} khong ton tai.");
-                if (product.Stock < quantity)
-                    return Fail<bool>($"San pham '{product.Name}' chi con {product.Stock} trong kho.");
+                foreach (var item in request.Items)
+                {
+                    if (item.ProductId.HasValue == item.PetId.HasValue)
+                    {
+                        errorMessage = "Moi dong don hang phai chon dung mot san pham hoac mot thu cung.";
+                        return;
+                    }
 
-                product.Stock -= quantity;
+                    if (item.ProductId.HasValue)
+                    {
+                        var quantity = Math.Max(1, item.Quantity);
+                        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId.Value && p.IsActive);
+                        if (product == null)
+                        {
+                            errorMessage = $"San pham #{item.ProductId.Value} khong ton tai.";
+                            return;
+                        }
+                        if (product.Stock < quantity)
+                        {
+                            errorMessage = $"San pham '{product.Name}' chi con {product.Stock} trong kho.";
+                            return;
+                        }
+
+                        product.Stock -= quantity;
+                    }
+                    else
+                    {
+                        var pet = await _db.Pets.FindAsync(item.PetId!.Value);
+                        if (pet == null)
+                        {
+                            errorMessage = $"Thu cung #{item.PetId.Value} khong ton tai.";
+                            return;
+                        }
+                        if (!string.Equals(pet.Status, "Available", StringComparison.OrdinalIgnoreCase))
+                        {
+                            errorMessage = $"Thu cung '{pet.Name}' hien khong san sang de ban.";
+                            return;
+                        }
+
+                        pet.Status = "Sold";
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                success = true;
             }
-            else
+            catch (Exception ex)
             {
-                var pet = await _db.Pets.FindAsync(item.PetId!.Value);
-                if (pet == null)
-                    return Fail<bool>($"Thu cung #{item.PetId.Value} khong ton tai.");
-                if (!string.Equals(pet.Status, "Available", StringComparison.OrdinalIgnoreCase))
-                    return Fail<bool>($"Thu cung '{pet.Name}' hien khong san sang de ban.");
-
-                pet.Status = "Sold";
+                await tx.RollbackAsync();
+                errorMessage = ex.Message;
             }
-        }
+        });
 
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
+        if (!success)
+            return Fail<bool>(errorMessage ?? "Khong the cap nhat ton kho.");
 
         foreach (var item in request.Items)
         {
@@ -367,34 +400,61 @@ public class InventoryService : IInventoryService
         if (request.Items.Count == 0)
             return Fail<bool>("Don hang khong co mat hang.");
 
-        await using var tx = await _db.Database.BeginTransactionAsync();
+        var strategy = _db.Database.CreateExecutionStrategy();
+        var success = false;
+        string? errorMessage = null;
 
-        foreach (var item in request.Items)
+        await strategy.ExecuteAsync(async () =>
         {
-            if (item.ProductId.HasValue == item.PetId.HasValue)
-                return Fail<bool>("Moi dong don hang phai chon dung mot san pham hoac mot thu cung.");
-
-            if (item.ProductId.HasValue)
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                var quantity = Math.Max(1, item.Quantity);
-                var product = await _db.Products.FindAsync(item.ProductId.Value);
-                if (product == null)
-                    return Fail<bool>($"San pham #{item.ProductId.Value} khong ton tai.");
+                foreach (var item in request.Items)
+                {
+                    if (item.ProductId.HasValue == item.PetId.HasValue)
+                    {
+                        errorMessage = "Moi dong don hang phai chon dung mot san pham hoac mot thu cung.";
+                        return;
+                    }
 
-                product.Stock += quantity;
+                    if (item.ProductId.HasValue)
+                    {
+                        var quantity = Math.Max(1, item.Quantity);
+                        var product = await _db.Products.FindAsync(item.ProductId.Value);
+                        if (product == null)
+                        {
+                            errorMessage = $"San pham #{item.ProductId.Value} khong ton tai.";
+                            return;
+                        }
+
+                        product.Stock += quantity;
+                    }
+                    else
+                    {
+                        var pet = await _db.Pets.FindAsync(item.PetId!.Value);
+                        if (pet == null)
+                        {
+                            errorMessage = $"Thu cung #{item.PetId.Value} khong ton tai.";
+                            return;
+                        }
+
+                        pet.Status = "Available";
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                success = true;
             }
-            else
+            catch (Exception ex)
             {
-                var pet = await _db.Pets.FindAsync(item.PetId!.Value);
-                if (pet == null)
-                    return Fail<bool>($"Thu cung #{item.PetId.Value} khong ton tai.");
-
-                pet.Status = "Available";
+                await tx.RollbackAsync();
+                errorMessage = ex.Message;
             }
-        }
+        });
 
-        await _db.SaveChangesAsync();
-        await tx.CommitAsync();
+        if (!success)
+            return Fail<bool>(errorMessage ?? "Khong the hoan tra ton kho.");
 
         foreach (var item in request.Items)
         {

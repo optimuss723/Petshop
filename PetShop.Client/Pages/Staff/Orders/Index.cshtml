@@ -1,166 +1,196 @@
 @page
 @model PetShop.Client.Pages.Staff.Orders.IndexModel
 @{
-    ViewData["Title"] = "Quản lý đơn hàng";
+    ViewData["Title"] = "Quản lý Đơn hàng";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="ps-backoffice-heading">
     <div>
-        <h4 class="mb-1 fw-semibold">📦 Quản lý đơn hàng</h4>
-        <div class="text-muted small">Xử lý và cập nhật trạng thái đơn hàng của khách.</div>
+        <span class="ps-kicker">Nghiệp vụ vận hành</span>
+        <h1>Quản lý Đơn hàng</h1>
+        <p>Xác nhận đơn COD, tạo vận đơn chuyển phát và cập nhật trạng thái giao hàng.</p>
     </div>
-    <span class="badge text-bg-light border">Tổng: @Model.Orders.Count đơn</span>
+    <div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fw-semibold">
+            <i class="bi bi-boxes me-1"></i>Tổng: @Model.Orders.Count đơn hàng
+        </span>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.Message.StartsWith("✅") ? "alert-success" : "alert-danger") alert-dismissible fade show">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    var alertClass = Model.Message.StartsWith("✅") ? "alert-success" : "alert-danger";
+    <div class="alert @alertClass alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm">
+        <i class="bi @(Model.Message.StartsWith("✅") ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-danger") fs-5"></i>
+        <div>@Model.Message</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<form method="get" class="row g-2 align-items-end mb-3">
-    <div class="col-md-4 col-lg-3">
-        <label class="form-label small text-muted mb-1">Lọc theo trạng thái</label>
-        <select name="status" class="form-select form-select-sm">
-            <option value="">Tất cả</option>
-            <option value="Pending"         selected="@(Model.StatusFilter=="Pending"?"selected":null)">⏳ Chờ xử lý</option>
-            <option value="Confirmed"       selected="@(Model.StatusFilter=="Confirmed"?"selected":null)">✅ Đã xác nhận</option>
-            <option value="Shipping"        selected="@(Model.StatusFilter=="Shipping"?"selected":null)">🚚 Đang giao</option>
-            <option value="AwaitingReceipt" selected="@(Model.StatusFilter=="AwaitingReceipt"?"selected":null)">📬 Chờ khách xác nhận</option>
-            <option value="Delivered"       selected="@(Model.StatusFilter=="Delivered"?"selected":null)">📦 Hoàn tất</option>
-            <option value="Cancelled"       selected="@(Model.StatusFilter=="Cancelled"?"selected":null)">❌ Đã hủy</option>
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-outline-success btn-sm w-100">🔍 Lọc</button>
-    </div>
-    <div class="col-md-2">
-        <a href="/Staff/Orders" class="btn btn-outline-secondary btn-sm w-100">✕ Xóa lọc</a>
-    </div>
-</form>
+<!-- Filter Toolbar -->
+<div class="ps-filter-toolbar mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <select name="status" class="form-select">
+                <option value="">Tất cả trạng thái</option>
+                <option value="Pending"         selected="@(Model.StatusFilter=="Pending"?"selected":null)">⏳ Chờ xử lý COD</option>
+                <option value="Confirmed"       selected="@(Model.StatusFilter=="Confirmed"?"selected":null)">✅ Đã xác nhận (Chờ tạo vận đơn)</option>
+                <option value="Shipping"        selected="@(Model.StatusFilter=="Shipping"?"selected":null)">🚚 Đang giao hàng</option>
+                <option value="AwaitingReceipt" selected="@(Model.StatusFilter=="AwaitingReceipt"?"selected":null)">📬 Chờ khách nhận hàng</option>
+                <option value="Delivered"       selected="@(Model.StatusFilter=="Delivered"?"selected":null)">📦 Giao thành công</option>
+                <option value="Cancelled"       selected="@(Model.StatusFilter=="Cancelled"?"selected":null)">❌ Đã hủy đơn</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">
+                <i class="bi bi-funnel me-1"></i>Lọc
+            </button>
+            <a href="/Staff/Orders" class="btn btn-outline-secondary">Xóa lọc</a>
+        </div>
+    </form>
+</div>
 
-<div class="data-table">
-    <table class="table table-hover align-middle">
-        <thead>
-        <tr>
-            <th>Đơn #</th>
-            <th>Khách hàng</th>
-            <th>Địa chỉ giao</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-            <th>Vận đơn</th>
-            <th class="text-end">Cập nhật</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var order in Model.Orders)
-        {
-            var waitingPayOs = !order.IsCod && order.Status == "Pending";
-            var canUpdate    = order.Status is "Pending" or "Confirmed" or "Shipping" or "AwaitingReceipt";
-            var statusLabel  = order.Status switch {
-                "Pending"         when order.IsCod => "⏳ Chờ xử lý COD",
-                "Pending"         => "🕐 Chờ thanh toán",
-                "Confirmed"       => "✅ Đã xác nhận",
-                "Shipping"        => "🚚 Đang giao",
-                "AwaitingReceipt" => "📬 Chờ khách xác nhận",
-                "Delivered"       => "📦 Hoàn tất",
-                "Cancelled"       => "❌ Đã hủy",
-                _                 => order.Status
-            };
-            <tr>
-                <td>
-                    <a href="/Staff/Orders/Detail/@order.Id" class="fw-semibold text-decoration-none">#@order.Id</a>
-                </td>
-                <td>
-                    <div class="fw-semibold">@order.UserName</div>
-                    @if (!string.IsNullOrEmpty(order.CustomerPhone))
-                    {
-                        <div class="text-muted small">📞 @order.CustomerPhone</div>
-                    }
-                </td>
-                <td class="text-truncate" style="max-width:220px">@order.ShippingAddress</td>
-                <td class="fw-semibold text-primary">@order.TotalAmount.ToString("N0")đ</td>
-                <td>
-                    <span class="badge @(order.Status switch {
-                        "Pending"         => "bg-warning text-dark",
-                        "Confirmed"       => "bg-info text-dark",
-                        "Shipping"        => "bg-primary",
-                        "AwaitingReceipt" => "bg-secondary",
-                        "Delivered"       => "bg-success",
-                        "Cancelled"       => "bg-danger",
-                        _                 => "bg-light text-dark"
-                    })">@statusLabel</span>
-                </td>
-                <td>
-                    @if (!string.IsNullOrEmpty(order.TrackingCode))
-                    {
-                        <a href="@order.TrackingUrl" target="_blank" class="small text-decoration-none">@order.TrackingCode</a>
-                        <div class="text-muted small">@order.ShippingProvider</div>
-                    }
-                    else
-                    {
-                        <span class="text-muted small">Chưa có</span>
-                    }
-                </td>
-                <td class="text-end">
-                    <a href="/Staff/Orders/Detail/@order.Id" class="btn btn-sm btn-outline-primary me-1">Chi tiết</a>
-                    @if (order.Status == "Confirmed" && string.IsNullOrEmpty(order.TrackingCode))
-                    {
-                        <form method="post" asp-page-handler="CreateShipment" class="d-inline"
-                              onsubmit="return confirm('Tạo vận đơn cho đơn #@order.Id?')">
-                            <input type="hidden" name="id" value="@order.Id"/>
-                            <input type="hidden" name="statusFilter" value="@Model.StatusFilter"/>
-                            <button type="submit" class="btn btn-sm btn-primary me-1">🚚 Tạo vận đơn</button>
-                        </form>
-                    }
-                    @if (canUpdate)
-                    {
-                        <form method="post" asp-page-handler="UpdateStatus" class="staff-status-form d-inline-flex gap-2 justify-content-end mt-1">
-                            <input type="hidden" name="id" value="@order.Id"/>
-                            <input type="hidden" name="statusFilter" value="@Model.StatusFilter"/>
-                            <select name="status" class="form-select form-select-sm" style="width:170px" data-current-status="@order.Status">
-                                @if (order.Status == "Pending")
-                                {
-                                    <option value="Pending" selected>⏳ Chờ xử lý</option>
-                                    @if (!waitingPayOs) { <option value="Confirmed">✅ Xác nhận COD</option> }
-                                    <option value="Cancelled">❌ Hủy đơn</option>
-                                }
-                                else if (order.Status == "Confirmed")
-                                {
-                                    <option value="Confirmed" selected>✅ Đã xác nhận</option>
-                                    <option value="Cancelled">❌ Hủy đơn</option>
-                                }
-                                else if (order.Status == "Shipping")
-                                {
-                                    <option value="Shipping" selected>🚚 Đang giao</option>
-                                    <option value="AwaitingReceipt">📬 Đã giao tới khách</option>
-                                }
-                                else if (order.Status == "AwaitingReceipt")
-                                {
-                                    <option value="AwaitingReceipt" selected>📬 Chờ xác nhận</option>
-                                    <option value="Shipping">🔄 Quay lại đang giao</option>
-                                }
-                            </select>
-                            <button type="submit" class="btn btn-sm btn-success" disabled>Lưu</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <span class="text-muted small">Không còn thao tác</span>
-                    }
-                </td>
-            </tr>
-        }
-        @if (!Model.Orders.Any())
-        {
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">🎉 Không có đơn hàng phù hợp.</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+<div class="ps-table-wrap mb-5">
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Danh sách đơn hàng vận chuyển</h6>
+        <span class="text-muted small">Cập nhật realtime</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-3" style="width:80px">Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Địa chỉ giao</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th>Mã vận đơn</th>
+                    <th class="text-end pe-3">Thao tác xử lý</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var order in Model.Orders)
+            {
+                var waitingPayOs = !order.IsCod && order.Status == "Pending";
+                var canUpdate    = order.Status is "Pending" or "Confirmed" or "Shipping" or "AwaitingReceipt";
+                var statusLabel  = order.Status switch {
+                    "Pending"         when order.IsCod => "⏳ Chờ duyệt COD",
+                    "Pending"         => "🕐 Chờ thanh toán",
+                    "Confirmed"       => "✅ Đã duyệt COD",
+                    "Shipping"        => "🚚 Đang giao",
+                    "AwaitingReceipt" => "📬 Chờ khách nhận",
+                    "Delivered"       => "📦 Đã hoàn tất",
+                    "Cancelled"       => "❌ Đã hủy",
+                    _                 => order.Status
+                };
+                var statusBadge = order.Status switch {
+                    "Pending"         => "bg-warning-subtle text-warning-emphasis",
+                    "Confirmed"       => "bg-info-subtle text-info-emphasis",
+                    "Shipping"        => "bg-primary-subtle text-primary",
+                    "AwaitingReceipt" => "bg-warning-subtle text-warning-emphasis",
+                    "Delivered"       => "bg-success-subtle text-success",
+                    "Cancelled"       => "bg-secondary-subtle text-secondary",
+                    _                 => "bg-light text-dark"
+                };
+
+                <tr>
+                    <td class="ps-3 fw-bold text-dark">
+                        <a href="/Staff/Orders/Detail/@order.Id" class="text-decoration-none">#@order.Id</a>
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark">@order.UserName</div>
+                        @if (!string.IsNullOrEmpty(order.CustomerPhone))
+                        {
+                            <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@order.CustomerPhone</div>
+                        }
+                    </td>
+                    <td class="text-truncate" style="max-width:180px" title="@order.ShippingAddress">
+                        <small class="text-muted">@order.ShippingAddress</small>
+                    </td>
+                    <td class="fw-bold text-success">@order.TotalAmount.ToString("N0")đ</td>
+                    <td>
+                        <span class="badge @statusBadge">@statusLabel</span>
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(order.TrackingCode))
+                        {
+                            <a href="@order.TrackingUrl" target="_blank" class="small text-decoration-none fw-semibold">
+                                <i class="bi bi-box-seam me-1"></i>@order.TrackingCode
+                            </a>
+                            <div class="small text-muted" style="font-size:0.75rem">@order.ShippingProvider</div>
+                        }
+                        else
+                        {
+                            <span class="text-muted small">— Chưa có —</span>
+                        }
+                    </td>
+                    <td class="text-end pe-3">
+                        <div class="d-inline-flex align-items-center gap-1 flex-wrap justify-content-end">
+                            <a href="/Staff/Orders/Detail/@order.Id" class="btn btn-sm btn-outline-primary">
+                                Chi tiết
+                            </a>
+                            @if (order.Status == "Confirmed" && string.IsNullOrEmpty(order.TrackingCode))
+                            {
+                                <form method="post" asp-page-handler="CreateShipment" class="d-inline"
+                                      onsubmit="return confirm('Tạo vận đơn và bắt đầu giao đơn #@order.Id?')">
+                                    <input type="hidden" name="id" value="@order.Id"/>
+                                    <input type="hidden" name="statusFilter" value="@Model.StatusFilter"/>
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-truck me-1"></i>Tạo vận đơn
+                                    </button>
+                                </form>
+                            }
+                            @if (canUpdate)
+                            {
+                                <form method="post" asp-page-handler="UpdateStatus" class="staff-status-form d-inline-flex gap-1 align-items-center">
+                                    <input type="hidden" name="id" value="@order.Id"/>
+                                    <input type="hidden" name="statusFilter" value="@Model.StatusFilter"/>
+                                    <select name="status" class="form-select form-select-sm" style="width:165px" data-current-status="@order.Status">
+                                        @if (order.Status == "Pending")
+                                        {
+                                            <option value="Pending" selected>⏳ Chờ xử lý</option>
+                                            @if (!waitingPayOs) { <option value="Confirmed">✅ Xác nhận COD</option> }
+                                            <option value="Cancelled">❌ Hủy đơn</option>
+                                        }
+                                        else if (order.Status == "Confirmed")
+                                        {
+                                            <option value="Confirmed" selected>✅ Đã xác nhận</option>
+                                            <option value="Cancelled">❌ Hủy đơn</option>
+                                        }
+                                        else if (order.Status == "Shipping")
+                                        {
+                                            <option value="Shipping" selected>🚚 Đang giao</option>
+                                            <option value="AwaitingReceipt">📬 Đã giao tới khách</option>
+                                        }
+                                        else if (order.Status == "AwaitingReceipt")
+                                        {
+                                            <option value="AwaitingReceipt" selected>📬 Chờ xác nhận</option>
+                                            <option value="Shipping">🔄 Quay lại đang giao</option>
+                                        }
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-success" disabled>Lưu</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-muted border">Đã xong</span>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Orders.Any())
+            {
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox fs-2 d-block mb-2 text-muted opacity-50"></i>
+                        Không có đơn hàng nào phù hợp với bộ lọc.
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @section Scripts {

@@ -16,14 +16,23 @@ appsettings.Development.json
 *.pfx
 *.p12
 
-## Logs
+## Logs & local runtime artifacts
 logs/
+**/logs/
 *.log
+*.err.log
+*.out.log
+*_logs.txt
+token.txt
+
+## Local helper scripts
+*.bat
 
 ## OS
 .DS_Store
 Thumbs.db
 desktop.ini
+{*
 
 ## Rider / VS Code
 .idea/

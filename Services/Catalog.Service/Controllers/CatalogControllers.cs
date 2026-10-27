@@ -45,21 +45,21 @@ public class ProductsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) => Ok(await _svc.GetByIdAsync(id));
 
-    /// <summary>Tạo sản phẩm mới — yêu cầu Staff</summary>
+    /// <summary>Tạo sản phẩm mới — yêu cầu Admin hoặc Staff</summary>
     [HttpPost]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Create([FromBody] ProductCreateRequest request)
         => Ok(await _svc.CreateAsync(request));
 
-    /// <summary>Cập nhật sản phẩm — yêu cầu Staff</summary>
+    /// <summary>Cập nhật sản phẩm — yêu cầu Admin hoặc Staff</summary>
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Update(int id, [FromBody] ProductUpdateRequest request)
         => Ok(await _svc.UpdateAsync(id, request));
 
-    /// <summary>Xóa mềm sản phẩm — yêu cầu Staff</summary>
+    /// <summary>Xóa mềm sản phẩm — yêu cầu Admin hoặc Staff</summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Delete(int id) => Ok(await _svc.DeleteAsync(id));
 }
 
@@ -99,21 +99,21 @@ public class PetsController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) => Ok(await _svc.GetByIdAsync(id));
 
-    /// <summary>Thêm thú cưng mới — yêu cầu Staff</summary>
+    /// <summary>Thêm thú cưng mới — yêu cầu Admin hoặc Staff</summary>
     [HttpPost]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Create([FromBody] PetCreateRequest request)
         => Ok(await _svc.CreateAsync(request));
 
-    /// <summary>Cập nhật thú cưng — yêu cầu Staff</summary>
+    /// <summary>Cập nhật thú cưng — yêu cầu Admin hoặc Staff</summary>
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Update(int id, [FromBody] PetUpdateRequest request)
         => Ok(await _svc.UpdateAsync(id, request));
 
-    /// <summary>Xóa thú cưng — yêu cầu Staff</summary>
+    /// <summary>Xóa thú cưng — yêu cầu Admin hoặc Staff</summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Delete(int id) => Ok(await _svc.DeleteAsync(id));
 }
 
@@ -203,36 +203,67 @@ public class InternalCatalogController : ControllerBase
 {
     private readonly IInventoryService _inventory;
     private readonly IConfiguration _config;
+    private readonly ILogger<InternalCatalogController> _logger;
 
-    public InternalCatalogController(IInventoryService inventory, IConfiguration config)
+    public InternalCatalogController(IInventoryService inventory, IConfiguration config, ILogger<InternalCatalogController> logger)
     {
         _inventory = inventory;
         _config = config;
+        _logger = logger;
     }
 
     [HttpPost("inventory/commit")]
     public async Task<IActionResult> CommitInventory([FromBody] InventoryCommitRequest request)
     {
-        if (!IsInternalRequest())
-            return Unauthorized();
+        _logger.LogInformation("Internal: POST inventory/commit received, Items count={Count}", request.Items.Count);
 
-        return Ok(await _inventory.CommitOrderAsync(request));
+        if (!IsInternalRequest())
+        {
+            _logger.LogWarning("Internal: inventory/commit UNAUTHORIZED - X-Internal-Key mismatch");
+            return Unauthorized(new { success = false, message = "Internal key khong hop le" });
+        }
+
+        var result = await _inventory.CommitOrderAsync(request);
+        _logger.LogInformation("Internal: inventory/commit result: Success={Success}, Message={Message}",
+            result.Success, result.Message);
+
+        return Ok(result);
     }
 
     [HttpPost("inventory/release")]
     public async Task<IActionResult> ReleaseInventory([FromBody] InventoryCommitRequest request)
     {
-        if (!IsInternalRequest())
-            return Unauthorized();
+        _logger.LogInformation("Internal: POST inventory/release received, Items count={Count}", request.Items.Count);
 
-        return Ok(await _inventory.ReleaseOrderAsync(request));
+        if (!IsInternalRequest())
+        {
+            _logger.LogWarning("Internal: inventory/release UNAUTHORIZED - X-Internal-Key mismatch");
+            return Unauthorized(new { success = false, message = "Internal key khong hop le" });
+        }
+
+        var result = await _inventory.ReleaseOrderAsync(request);
+        _logger.LogInformation("Internal: inventory/release result: Success={Success}, Message={Message}",
+            result.Success, result.Message);
+
+        return Ok(result);
     }
 
     private bool IsInternalRequest()
     {
         var configuredKey = _config["InternalApiKey"] ?? "dev-internal-key";
-        return Request.Headers.TryGetValue("X-Internal-Key", out var key)
-            && key.ToString() == configuredKey;
+        if (!Request.Headers.TryGetValue("X-Internal-Key", out var key))
+        {
+            _logger.LogWarning("Internal: Missing X-Internal-Key header");
+            return false;
+        }
+        var keyStr = key.ToString();
+        if (keyStr != configuredKey)
+        {
+            _logger.LogWarning("Internal: X-Internal-Key mismatch. Received='{Received}', Expected='{Expected}'",
+                keyStr, configuredKey);
+            return false;
+        }
+        return true;
     }
 }
 

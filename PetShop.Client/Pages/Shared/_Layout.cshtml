@@ -3,24 +3,17 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — PetShop" : "PetShop")</title>
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " — PetShop" : "PetShop — Thế giới thú cưng & Phụ kiện")</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
-    <style>
-        body { background: #f8f9fa; }
-        .sidebar { min-height: 100vh; background: #1e293b; color: #cbd5e1; }
-        .sidebar a { color: #cbd5e1; text-decoration: none; display: block; padding: .5rem 1rem; border-radius: 6px; margin-bottom:2px; }
-        .sidebar a:hover, .sidebar a.active { background: #334155; color: #fff; }
-        .sidebar .nav-header { font-size: .7rem; text-transform:uppercase; letter-spacing:.08em; color:#64748b; padding: .75rem 1rem .25rem; }
-        .main-content { padding: 1.5rem; }
-        .navbar-brand { font-weight: 700; }
-        .notif-badge { position:absolute; top:-4px; right:-4px; font-size:.6rem; min-width:16px; }
-        @* Notification toast *@
-        .order-notif-toast { min-width:280px; }
-    </style>
+    <link rel="stylesheet" href="~/css/petshop-design.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/css/petshop-storefront.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/css/petshop-backoffice.css" asp-append-version="true"/>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
-
 @{
     var role     = Context.Session.GetString("UserRole") ?? "";
     var isAuth   = !string.IsNullOrEmpty(Context.Session.GetString("AccessToken"));
@@ -28,137 +21,282 @@
     var isAdmin  = role == "Admin" || role == "Staff";
     var path     = Context.Request.Path.Value ?? "/";
 }
+<body class="@(isAdmin ? "ps-backoffice" : "ps-storefront")">
 
 @if (isAdmin)
 {
-    <!-- Admin Layout (Sidebar) -->
-    <div class="d-flex">
-        <div class="sidebar d-flex flex-column" style="width:240px;min-width:240px">
-            <div class="p-3 border-bottom border-secondary">
-                <span class="fw-bold text-white fs-5">🐾 PetShop</span>
-                <div class="small text-muted mt-1">@userName</div>
-                <span class="badge @(role == "Admin" ? "bg-danger" : "bg-warning text-dark") small">
-                    @(role == "Admin" ? "🛡️ Admin" : "🔧 Staff")
-                </span>
-            </div>
-            <nav class="flex-grow-1 p-2 pt-3">
-                <div class="nav-header">Tổng quan</div>
-                <a href="/Admin/Dashboard" class="@(path.StartsWith("/Admin/Dashboard") ? "active" : "")">
-                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+    <!-- ═══════ ADMIN / BACK-OFFICE LAYOUT ═══════ -->
+    <div class="ps-admin-shell d-flex" id="adminShell">
+        <!-- Sidebar -->
+        <aside class="ps-sidebar" id="adminSidebar">
+            <a href="/Admin/Dashboard" class="ps-sidebar__brand d-flex align-items-center">
+                <span class="ps-sidebar__logo">🐾</span>
+                <div>
+                    <div>PetShop <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Admin</span></div>
+                    <div class="ps-sidebar__user">
+                        <i class="bi bi-shield-check text-warning me-1"></i>@(role == "Admin" ? "Quản trị viên" : "Nhân viên"): @userName
+                    </div>
+                </div>
+            </a>
+
+            <nav class="flex-grow-1 py-2">
+                <div class="ps-sidebar__label">Tổng quan</div>
+                <a href="/Admin/Dashboard" class="ps-sidebar__link @(path == "/Admin/Dashboard" ? "active" : "")">
+                    <i class="bi bi-grid-1x2"></i> Dashboard
                 </a>
-                <a href="/Admin/Reports" class="@(path.StartsWith("/Admin/Reports") ? "active" : "")">
-                    <i class="bi bi-bar-chart me-2"></i>Báo cáo
-                    <span class="badge bg-success ms-1" style="font-size:.6rem">Mới</span>
+                <a href="/Admin/Reports" class="ps-sidebar__link @(path.StartsWith("/Admin/Reports") ? "active" : "")">
+                    <i class="bi bi-bar-chart-line"></i> Báo cáo & Thống kê
                 </a>
-                <div class="nav-header mt-2">Quản lý</div>
-                <a href="/Admin/Orders" class="@(path.StartsWith("/Admin/Orders") ? "active" : "")">
-                    <i class="bi bi-box me-2"></i>Đơn hàng
+
+                <div class="ps-sidebar__label">Quản lý bán hàng</div>
+                <a href="/Admin/Orders" class="ps-sidebar__link @(path.StartsWith("/Admin/Orders") ? "active" : "")">
+                    <i class="bi bi-box-seam"></i> Đơn hàng
                 </a>
-                <div class="nav-header mt-2">Hệ thống</div>
-                <a href="/Admin/Users" class="@(path.StartsWith("/Admin/Users") ? "active" : "")">
-                    <i class="bi bi-people me-2"></i>Người dùng
-                    <span class="badge bg-info ms-1" style="font-size:.6rem">Mới</span>
+                <a href="/Admin/Products" class="ps-sidebar__link @(path.StartsWith("/Admin/Products") ? "active" : "")">
+                    <i class="bi bi-bag-check"></i> Sản phẩm
                 </a>
-                <div class="nav-header mt-2">Tài khoản</div>
-                <a href="/Auth/Logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a>
+                <a href="/Admin/Pets" class="ps-sidebar__link @(path.StartsWith("/Admin/Pets") ? "active" : "")">
+                    <i class="bi bi-heart-pulse"></i> Thú cưng
+                </a>
+                <a href="/Admin/Categories" class="ps-sidebar__link @(path.StartsWith("/Admin/Categories") ? "active" : "")">
+                    <i class="bi bi-tags"></i> Danh mục
+                </a>
+
+                <div class="ps-sidebar__label">Hệ thống</div>
+                <a href="/Admin/Users" class="ps-sidebar__link @(path.StartsWith("/Admin/Users") ? "active" : "")">
+                    <i class="bi bi-people"></i> Tài khoản người dùng
+                </a>
+                <a href="/" target="_blank" class="ps-sidebar__link text-light">
+                    <i class="bi bi-shop"></i> Xem trang bán hàng <i class="bi bi-box-arrow-up-right ms-auto small opacity-50"></i>
+                </a>
             </nav>
-        </div>
-        <div class="flex-grow-1">
-            <!-- Admin notification badge area -->
-            <div id="admin-order-alerts" class="position-fixed top-0 end-0 p-3" style="z-index:1100;max-width:350px"></div>
-            <div class="main-content">
-                @RenderBody()
+
+            <div class="ps-sidebar__footer">
+                <a href="/Auth/Logout" class="ps-sidebar__link text-danger">
+                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                </a>
             </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <div class="ps-workspace d-flex flex-column">
+            <header class="ps-topbar">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-sm btn-outline-secondary ps-mobile-sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="Toggle menu">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <span class="ps-topbar__title">@(ViewData["Title"] ?? "Admin Portal")</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="ps-topbar__meta"><i class="bi bi-person-circle me-1"></i>@userName</span>
+                    <a href="/Auth/Logout" class="btn btn-sm btn-outline-danger px-3">
+                        <i class="bi bi-box-arrow-right me-1"></i>Đăng xuất
+                    </a>
+                </div>
+            </header>
+
+            <!-- Admin toast area for new order alerts -->
+            <div id="admin-order-alerts" class="position-fixed top-0 end-0 p-3" style="z-index:1100;max-width:400px"></div>
+
+            <main class="ps-workspace-content flex-grow-1">
+                @RenderBody()
+            </main>
         </div>
     </div>
 }
 else
 {
-    <!-- Customer/Public Layout (Topbar) -->
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm mb-0 sticky-top">
+    <!-- ═══════ CUSTOMER / PUBLIC STOREFRONT LAYOUT ═══════ -->
+    <div class="ps-announce text-center">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="d-none d-md-inline"><i class="bi bi-truck me-1"></i> Miễn phí vận chuyển toàn quốc cho đơn hàng từ 500.000đ</span>
+            <span><i class="bi bi-telephone me-1"></i> Hotline hỗ trợ: <strong>1900 1234</strong> (8h00 - 21h30)</span>
+            <span class="d-none d-lg-inline"><i class="bi bi-award me-1"></i> Cam kết 100% thú cưng thuần chủng & vacxin đầy đủ</span>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg ps-navbar sticky-top">
         <div class="container">
-            <a class="navbar-brand text-primary" href="/">🐾 PetShop</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <a class="navbar-brand" href="/">
+                <span class="ps-brand-mark">🐾</span>
+                <span>PetShop</span>
+            </a>
+
+            <div class="d-flex align-items-center gap-2 d-lg-none">
+                <a class="btn btn-sm ps-cart-link" href="/Cart" aria-label="Giỏ hàng">
+                    <i class="bi bi-cart3 fs-6"></i>
+                    <span id="cart-count-mobile" class="badge bg-danger rounded-pill ms-1"></span>
+                </a>
+                <button class="navbar-toggler border-0 shadow-none px-2 py-1" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Menu">
+                    <i class="bi bi-list fs-3"></i>
+                </button>
+            </div>
+
             <div class="collapse navbar-collapse" id="navMain">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link @(path == "/" || path == "/Index" ? "active" : "")" href="/">Trang chủ</a></li>
-                    @if (isAuth)
-                    {
-                        <li class="nav-item"><a class="nav-link @(path.StartsWith("/User/Orders") ? "active" : "")" href="/User/Orders">📦 Đơn hàng</a></li>
-                        <li class="nav-item"><a class="nav-link @(path == "/User/Dashboard" ? "active" : "")" href="/User/Dashboard">👤 Trang cá nhân</a></li>
-                        <li class="nav-item"><a class="nav-link @(path.StartsWith("/User/Profile") ? "active" : "")" href="/User/Profile">⚙️ Hồ sơ</a></li>
-                    }
-                </ul>
-                <ul class="navbar-nav ms-auto align-items-center gap-2">
-                    <!-- 🛒 Giỏ hàng -->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-lg-1">
                     <li class="nav-item">
-                        <a class="btn btn-outline-primary btn-sm position-relative" href="/Cart">
-                            🛒 Giỏ hàng
-                            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:.65rem"></span>
+                        <a class="nav-link @(path == "/" || path == "/Index" ? "active" : "")" href="/">
+                            <i class="bi bi-house me-1"></i>Trang chủ
                         </a>
                     </li>
-                    <!-- 🔔 Thông báo đơn hàng (#11 #12) -->
+                    <li class="nav-item">
+                        <a class="nav-link @(path.StartsWith("/Products") ? "active" : "")" href="/#products">
+                            <i class="bi bi-bag me-1"></i>Sản phẩm
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link @(path.StartsWith("/Pets") ? "active" : "")" href="/#pets">
+                            <i class="bi bi-heart me-1"></i>Thú cưng
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/#spa-services">
+                            <i class="bi bi-scissors me-1"></i>Spa & Hotel
+                        </a>
+                    </li>
                     @if (isAuth)
                     {
                         <li class="nav-item">
-                            <div class="position-relative" style="cursor:pointer" data-bs-toggle="offcanvas" data-bs-target="#notifOffcanvas">
-                                <button class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-bell"></i>
-                                    <span id="notif-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-badge" style="display:none">0</span>
-                                </button>
-                            </div>
-                        </li>
-                    }
-                    @if (isAuth)
-                    {
-                        <li class="nav-item">
-                            <a class="nav-link" href="/User/Profile">
-                                <i class="bi bi-person-circle"></i> @userName
+                            <a class="nav-link @(path.StartsWith("/User/Orders") ? "active" : "")" href="/User/Orders">
+                                <i class="bi bi-box-seam me-1"></i>Đơn mua
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="btn btn-outline-secondary btn-sm" href="/Auth/Logout">Đăng xuất</a>
+                            <a class="nav-link @(path == "/User/Dashboard" ? "active" : "")" href="/User/Dashboard">
+                                <i class="bi bi-speedometer2 me-1"></i>Cá nhân
+                            </a>
                         </li>
+                    }
+                </ul>
+
+                <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                    <!-- Cart Button (Desktop) -->
+                    <a class="btn btn-sm ps-cart-link d-none d-lg-inline-flex px-3" href="/Cart">
+                        <i class="bi bi-cart3 me-1"></i> Giỏ hàng
+                        <span id="cart-count" class="badge bg-danger rounded-pill ms-1" style="display:none">0</span>
+                    </a>
+
+                    @if (isAuth)
+                    {
+                        <div class="dropdown">
+                            <button class="btn btn-sm ps-account-link dropdown-toggle d-flex align-items-center gap-2 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle fs-6 text-primary"></i>
+                                <span class="fw-semibold">@userName</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border">
+                                <li><a class="dropdown-item py-2" href="/User/Dashboard"><i class="bi bi-grid-1x2 me-2 text-primary"></i>Tổng quan cá nhân</a></li>
+                                <li><a class="dropdown-item py-2" href="/User/Profile"><i class="bi bi-person-gear me-2 text-secondary"></i>Hồ sơ tài khoản</a></li>
+                                <li><a class="dropdown-item py-2" href="/User/Orders"><i class="bi bi-box-seam me-2 text-success"></i>Lịch sử đơn hàng</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item py-2 text-danger" href="/Auth/Logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                            </ul>
+                        </div>
                     }
                     else
                     {
-                        <li class="nav-item"><a class="btn btn-outline-primary btn-sm" href="/Auth/Login">Đăng nhập</a></li>
-                        <li class="nav-item"><a class="btn btn-primary btn-sm" href="/Auth/Register">Đăng ký</a></li>
+                        <a class="btn btn-outline-primary btn-sm px-3" href="/Auth/Login">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập
+                        </a>
+                        <a class="btn btn-primary btn-sm px-3" href="/Auth/Register">
+                            <i class="bi bi-person-plus me-1"></i>Đăng ký
+                        </a>
                     }
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Notification Offcanvas (#12) -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="notifOffcanvas" style="width:320px">
-        <div class="offcanvas-header">
-            <h6 class="offcanvas-title fw-bold">🔔 Thông báo</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body p-0">
-            <div id="notif-list" class="list-group list-group-flush">
-                <div class="text-center text-muted py-5" id="notif-empty">Chưa có thông báo</div>
+    <main class="ps-main container">
+        @RenderBody()
+    </main>
+
+    <!-- Professional Footer -->
+    <footer class="ps-footer">
+        <div class="container">
+            <div class="row g-4 justify-content-between">
+                <div class="col-lg-4">
+                    <div class="ps-footer__brand mb-3 d-flex align-items-center gap-2">
+                        <span class="ps-brand-mark" style="width:2rem;height:2rem;font-size:0.95rem;">🐾</span>
+                        <span>PetShop Solution</span>
+                    </div>
+                    <p class="small mb-3" style="max-width:340px;line-height:1.7;">
+                        Hệ thống cung cấp thú cưng thuần chủng, thức ăn cao cấp và phụ kiện thú y tiêu chuẩn. Đồng hành chăm sóc người bạn bốn chân của bạn mỗi ngày.
+                    </p>
+                    <div class="d-flex gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-light rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="btn btn-sm btn-outline-light rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="btn btn-sm btn-outline-light rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+                        <a href="#" class="btn btn-sm btn-outline-light rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width:34px;height:34px;" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6 class="mb-3">Khám phá</h6>
+                    <div class="d-flex flex-column gap-2 small">
+                        <a href="/#products">Thức ăn cho chó mèo</a>
+                        <a href="/#toys">Đồ chơi huấn luyện</a>
+                        <a href="/#accessories">Phụ kiện & Chuồng nệm</a>
+                        <a href="/#pets">Thú cưng thuần chủng</a>
+                        <a href="/Cart">Giỏ hàng thanh toán</a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6 class="mb-3">Tài khoản</h6>
+                    <div class="d-flex flex-column gap-2 small">
+                        @if (isAuth)
+                        {
+                            <a href="/User/Dashboard">Bảng điều khiển</a>
+                            <a href="/User/Orders">Tra cứu đơn mua</a>
+                            <a href="/User/Profile">Sổ địa chỉ & Hồ sơ</a>
+                            <a href="/Auth/Logout" class="text-danger">Đăng xuất</a>
+                        }
+                        else
+                        {
+                            <a href="/Auth/Login">Đăng nhập thành viên</a>
+                            <a href="/Auth/Register">Tạo tài khoản mới</a>
+                            <a href="/User/Orders">Theo dõi đơn hàng</a>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <h6 class="mb-3">Thông tin liên hệ</h6>
+                    <div class="d-flex flex-column gap-2 small">
+                        <span><i class="bi bi-geo-alt-fill text-warning me-2"></i>123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh</span>
+                        <span><i class="bi bi-telephone-fill text-warning me-2"></i>Tổng đài: <strong>1900 1234</strong></span>
+                        <span><i class="bi bi-envelope-fill text-warning me-2"></i>cskh@petshop.vn</span>
+                        <span><i class="bi bi-clock-fill text-warning me-2"></i>Giờ làm việc: 08:00 - 22:00 (Hàng ngày)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ps-footer__bottom text-center small">
+                © @DateTime.Now.Year PetShop Solution. Toàn bộ bản quyền được bảo lưu. Thiết kế chuẩn thương mại điện tử chuyên nghiệp.
             </div>
         </div>
-        <div class="offcanvas-footer p-3 border-top">
-            <button class="btn btn-sm btn-outline-secondary w-100" onclick="clearNotifications()">Xóa tất cả</button>
-        </div>
-    </div>
-
-    <div class="container py-4">
-        @RenderBody()
+    </footer>
+}
+@if (!isAdmin)
+{
+    <!-- Floating Quick Contact Action (PetNow Standard) -->
+    <div class="ps-floating-actions position-fixed bottom-0 end-0 p-3 d-flex flex-column gap-2" style="z-index: 1080; margin-bottom: 3.5rem;">
+        <a href="tel:19001234" class="btn btn-danger rounded-circle shadow-lg d-flex align-items-center justify-content-center ps-pulse-btn text-white text-decoration-none" style="width: 50px; height: 50px;" title="Hotline 1900 1234" aria-label="Hotline">
+            <i class="bi bi-telephone-fill fs-5"></i>
+        </a>
+        <a href="https://zalo.me" target="_blank" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center text-white text-decoration-none" style="width: 50px; height: 50px; background-color: #0068ff; border-color: #0068ff;" title="Chat Zalo hỗ trợ" aria-label="Zalo">
+            <span class="fw-bold" style="font-size: 0.75rem;">Zalo</span>
+        </a>
+        <button type="button" class="btn btn-light border rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;" onclick="window.scrollTo({top:0, behavior:'smooth'})" title="Lên đầu trang" aria-label="Scroll to top">
+            <i class="bi bi-arrow-up"></i>
+        </button>
     </div>
 }
 
-<!-- Cart / Alert Toast -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index:1050">
-    <div id="cart-toast" class="toast align-items-center text-bg-success border-0" role="alert">
+<!-- Toast Notification (single, shared container) -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1090;">
+    <div id="cart-toast" class="toast align-items-center text-bg-success border-0 shadow" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
-            <div class="toast-body" id="cart-toast-msg">Đã thêm vào giỏ hàng!</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            <div class="toast-body d-flex align-items-center gap-2" id="cart-toast-msg">
+                <i class="bi bi-check-circle-fill fs-5"></i> Đã thêm vào giỏ hàng!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Đóng"></button>
         </div>
     </div>
 </div>
@@ -166,31 +304,30 @@ else
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script>
-// ── Cart Badge ──────────────────────────────────────────────────────
+// ── Mobile Admin Sidebar Toggle ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    const shell = document.getElementById('adminShell');
+    if (toggleBtn && shell) {
+        toggleBtn.addEventListener('click', () => {
+            shell.classList.toggle('sidebar-open');
+        });
+    }
+});
+
+// ── Cart System ─────────────────────────────────────────────────────
 const PETSHOP_CART_KEY = 'petshop_cart';
 
 function normalizeCartItem(item) {
     if (!item) return null;
-
     const type = String(item.type || '').toLowerCase();
     const id = Number(item.id);
     const price = Number(item.price);
     let qty = Number(item.qty || 1);
-
-    if ((type !== 'product' && type !== 'pet') || !Number.isInteger(id) || id <= 0 || !Number.isFinite(price)) {
-        return null;
-    }
-
+    if ((type !== 'product' && type !== 'pet') || !Number.isInteger(id) || id <= 0 || !Number.isFinite(price)) return null;
     qty = Math.max(1, Math.floor(qty));
     if (type === 'pet') qty = 1;
-
-    return {
-        type,
-        id,
-        name: String(item.name || ''),
-        price,
-        qty
-    };
+    return { type, id, name: String(item.name || ''), price, qty };
 }
 
 function readCartFrom(storage) {
@@ -198,9 +335,7 @@ function readCartFrom(storage) {
         const value = storage.getItem(PETSHOP_CART_KEY);
         const parsed = value ? JSON.parse(value) : [];
         return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
+    } catch { return []; }
 }
 
 function getPetShopCart() {
@@ -208,11 +343,9 @@ function getPetShopCart() {
     const localItems = readCartFrom(localStorage);
     const source = sessionItems.length > 0 ? sessionItems : localItems;
     const cart = source.map(normalizeCartItem).filter(Boolean);
-
     if (sessionItems.length === 0 && localItems.length > 0) {
         sessionStorage.setItem(PETSHOP_CART_KEY, JSON.stringify(cart));
     }
-
     return cart;
 }
 
@@ -230,7 +363,6 @@ function clearPetShopCart() {
 function addPetShopCartItem(type, id, name, price) {
     const item = normalizeCartItem({ type, id, name, price, qty: 1 });
     if (!item) return { added: false, reason: 'invalid' };
-
     const cart = getPetShopCart();
     const existing = cart.find(i => i.type === item.type && i.id === item.id);
     if (existing) {
@@ -239,7 +371,6 @@ function addPetShopCartItem(type, id, name, price) {
     } else {
         cart.push(item);
     }
-
     savePetShopCart(cart);
     updateCartBadge();
     return { added: true };
@@ -248,7 +379,15 @@ function addPetShopCartItem(type, id, name, price) {
 function updateCartBadge() {
     const total = getPetShopCart().reduce((s, i) => s + i.qty, 0);
     const badge = document.getElementById('cart-count');
-    if (badge) badge.textContent = total > 0 ? total : '';
+    const badgeMobile = document.getElementById('cart-count-mobile');
+    if (badge) {
+        badge.textContent = total > 0 ? total : '';
+        badge.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+    if (badgeMobile) {
+        badgeMobile.textContent = total > 0 ? total : '';
+        badgeMobile.style.display = total > 0 ? 'inline-block' : 'none';
+    }
 }
 
 window.PetShopCart = {
@@ -263,60 +402,26 @@ updateCartBadge();
 window.addEventListener('storage', updateCartBadge);
 window.addEventListener('pageshow', updateCartBadge);
 
-// ── Notification System (#11 #12) ──────────────────────────────────
-let notifications = JSON.parse(sessionStorage.getItem('petshop_notifs') || '[]');
-function saveNotifications() { sessionStorage.setItem('petshop_notifs', JSON.stringify(notifications)); }
-
-function addNotification(msg, type = 'info') {
-    notifications.unshift({ msg, type, time: new Date().toLocaleTimeString('vi-VN'), read: false });
-    if (notifications.length > 20) notifications.pop();
-    saveNotifications();
-    renderNotifications();
-
-    // Toast popup
+// ── Toast Helper ────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
     const toastEl  = document.getElementById('cart-toast');
     const toastMsg = document.getElementById('cart-toast-msg');
     if (toastEl && toastMsg) {
-        toastEl.className = `toast align-items-center text-bg-${type === 'warning' ? 'warning' : 'info'} border-0`;
-        toastMsg.textContent = msg;
-        new bootstrap.Toast(toastEl, { delay: 5000 }).show();
+        const colorMap = { success:'success', info:'info', warning:'warning', danger:'danger' };
+        toastEl.className = `toast align-items-center text-bg-${colorMap[type] || 'info'} border-0 shadow`;
+        const iconMap = {
+            success: 'bi-check-circle-fill',
+            info: 'bi-info-circle-fill',
+            warning: 'bi-exclamation-triangle-fill',
+            danger: 'bi-x-octagon-fill'
+        };
+        const iconClass = iconMap[type] || 'bi-info-circle-fill';
+        toastMsg.innerHTML = `<i class="bi ${iconClass} fs-5"></i> <span>${msg}</span>`;
+        new bootstrap.Toast(toastEl, { delay: 4000 }).show();
     }
 }
 
-function renderNotifications() {
-    const list = document.getElementById('notif-list');
-    const empty = document.getElementById('notif-empty');
-    const badge = document.getElementById('notif-count');
-    if (!list) return;
-
-    const unread = notifications.filter(n => !n.read).length;
-    if (badge) {
-        badge.style.display = unread > 0 ? 'inline-block' : 'none';
-        badge.textContent   = unread > 0 ? unread : '';
-    }
-
-    if (notifications.length === 0) { if (empty) empty.style.display='block'; return; }
-    if (empty) empty.style.display = 'none';
-
-    list.innerHTML = '<div class="text-center text-muted py-5" id="notif-empty" style="display:none">Chưa có thông báo</div>';
-    notifications.forEach((n, i) => {
-        const item = document.createElement('div');
-        item.className = `list-group-item list-group-item-action py-2 ${n.read ? 'text-muted' : 'fw-semibold'}`;
-        item.innerHTML = `<div class="d-flex justify-content-between"><span>${n.msg}</span><small>${n.time}</small></div>`;
-        item.onclick = () => { notifications[i].read = true; saveNotifications(); renderNotifications(); };
-        list.appendChild(item);
-    });
-}
-
-function clearNotifications() {
-    notifications = [];
-    saveNotifications();
-    renderNotifications();
-}
-
-renderNotifications();
-
-// ── SignalR Order Hub (Customer) — #11 ──────────────────────────────
+// ── SignalR: Customer Order Status Updates ───────────────────────────
 @if (isAuth && !isAdmin)
 {
     var userId = Context.Session.GetString("UserId") ?? "";
@@ -329,9 +434,15 @@ const orderConn = new signalR.HubConnectionBuilder()
     .build();
 
 orderConn.on('OrderStatusChanged', data => {
-    const statusMap = { Confirmed:'✅ Đã xác nhận', Shipping:'🚚 Đang giao hàng', AwaitingReceipt:'📬 Chờ bạn xác nhận đã nhận', Delivered:'📦 Đã nhận hàng', Cancelled:'❌ Đã hủy' };
+    const statusMap = {
+        Confirmed: '✅ Đã xác nhận đơn',
+        Shipping: '🚚 Đang giao hàng',
+        AwaitingReceipt: '📬 Chờ bạn xác nhận đã nhận',
+        Delivered: '📦 Giao hàng thành công',
+        Cancelled: '❌ Đã hủy'
+    };
     const label = statusMap[data.newStatus] || data.newStatus;
-    addNotification(`Đơn hàng #${data.orderId}: ${label}`, data.newStatus === 'Cancelled' ? 'warning' : 'info');
+    showToast(`Đơn hàng #${data.orderId}: ${label}`, data.newStatus === 'Cancelled' ? 'warning' : 'info');
 });
 
 orderConn.start()
@@ -340,7 +451,7 @@ orderConn.start()
     </text>
 }
 
-// ── SignalR Admin New Order notification ────────────────────────────
+// ── SignalR: Admin New Order Alerts ─────────────────────────────────
 @if (isAdmin)
 {
     var adminHubUrlStr = ((IConfiguration)Context.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders";
@@ -356,9 +467,16 @@ adminOrderConn.on('NewOrder', data => {
     if (!container) return;
     const div = document.createElement('div');
     div.className = 'alert alert-success alert-dismissible fade show shadow mt-2';
-    div.innerHTML = `🔔 <strong>Đơn hàng mới #${data.orderId}</strong> — ${Number(data.totalAmount).toLocaleString('vi-VN')}đ <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    div.style.borderRadius = '12px';
+    div.innerHTML = `<div class="d-flex align-items-center gap-2">
+        <i class="bi bi-bell-fill fs-5 text-success"></i>
+        <div>
+            <strong>Đơn mới #${data.id ?? data.orderId}</strong> — ${Number(data.totalAmount).toLocaleString('vi-VN')}đ vừa đặt!
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>`;
     container.prepend(div);
-    setTimeout(() => { try { bootstrap.Alert.getOrCreateInstance(div).close(); } catch(_){div.remove();} }, 8000);
+    setTimeout(() => { try { bootstrap.Alert.getOrCreateInstance(div).close(); } catch(_){ div.remove(); } }, 8000);
 });
 
 adminOrderConn.start()

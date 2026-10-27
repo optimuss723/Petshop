@@ -2,18 +2,25 @@
 @model PetShop.Client.Pages.Staff.Products.IndexModel
 @{ ViewData["Title"] = "Quản lý Sản phẩm"; }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0 fw-semibold">🛍️ Quản lý Sản phẩm</h5>
-    <a href="/Staff/Products/Edit" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
-    </a>
+<div class="ps-backoffice-heading">
+    <div>
+        <span class="ps-kicker">Kho hàng nhân viên</span>
+        <h1>Quản lý Sản phẩm</h1>
+        <p>Quản lý tồn kho, giá bán và phân loại sản phẩm phụ kiện thú cưng.</p>
+    </div>
+    <div>
+        <a href="/Staff/Products/Edit" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Thêm sản phẩm mới
+        </a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+        <div>@Model.Message</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
 }
 
@@ -31,64 +38,65 @@
     };
 }
 
-<div class="d-flex flex-wrap gap-2 mb-3">
+<div class="d-flex flex-wrap gap-2 mb-4">
     @foreach (var item in categories)
     {
         var active = item.Value == "" ? string.IsNullOrEmpty(Model.Category) : Model.Category == item.Value;
         <a href="@item.Url"
-           class="btn btn-sm ajax-link @(active ? "btn-success" : "btn-outline-success")">
+           class="btn btn-sm ajax-link @(active ? "btn-primary" : "btn-light border") px-3 py-1.5 fw-semibold">
             @item.Icon @item.Label
         </a>
     }
 </div>
 
 <!-- Filter Bar -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <form method="get" id="filter-form" class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <input name="search" value="@Model.Search" class="form-control form-control-sm" placeholder="🔍 Tìm tên sản phẩm..."/>
+<div class="ps-filter-toolbar mb-4">
+    <form method="get" id="filter-form" class="row g-2 align-items-center">
+        <div class="col-md-3">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input name="search" value="@Model.Search" class="form-control border-start-0 ps-0" placeholder="Tìm tên sản phẩm..."/>
             </div>
-            <div class="col-md-2">
-                <select name="category" class="form-select form-select-sm">
-                    <option value="">Tất cả danh mục</option>
-                    <option value="Food"      selected="@(Model.Category=="Food")">🍖 Thức ăn</option>
-                    <option value="Accessory" selected="@(Model.Category=="Accessory")">🎀 Phụ kiện</option>
-                    <option value="Medicine"  selected="@(Model.Category=="Medicine")">💊 Thuốc</option>
-                    <option value="Toy"       selected="@(Model.Category=="Toy")">🎾 Đồ chơi</option>
-                    <option value="Grooming"  selected="@(Model.Category=="Grooming")">✂️ Grooming</option>
-                    <option value="Other"     selected="@(Model.Category=="Other")">📦 Khác</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="sort" class="form-select form-select-sm">
-                    <option value="CreatedAt desc" selected="@(Model.Sort=="CreatedAt desc")">Mới nhất</option>
-                    <option value="Name asc"       selected="@(Model.Sort=="Name asc")">Tên A-Z</option>
-                    <option value="Name desc"      selected="@(Model.Sort=="Name desc")">Tên Z-A</option>
-                    <option value="Price asc"      selected="@(Model.Sort=="Price asc")">Giá tăng dần</option>
-                    <option value="Price desc"     selected="@(Model.Sort=="Price desc")">Giá giảm dần</option>
-                    <option value="Stock asc"      selected="@(Model.Sort=="Stock asc")">Tồn kho thấp trước</option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <select name="pageSize" class="form-select form-select-sm">
-                    <option value="5"  selected="@(Model.PageSize==5)">5</option>
-                    <option value="10" selected="@(Model.PageSize==10)">10</option>
-                    <option value="20" selected="@(Model.PageSize==20)">20</option>
-                    <option value="50" selected="@(Model.PageSize==50)">50</option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Lọc</button>
-            </div>
-            <div class="col-md-1">
-                <a href="/Staff/Products" class="btn btn-outline-secondary btn-sm w-100 ajax-link">Xoá lọc</a>
-            </div>
-        </form>
-    </div>
+        </div>
+        <div class="col-md-2">
+            <select name="category" class="form-select">
+                <option value="">Tất cả danh mục</option>
+                <option value="Food"      selected="@(Model.Category=="Food")">🍖 Thức ăn</option>
+                <option value="Accessory" selected="@(Model.Category=="Accessory")">🎀 Phụ kiện</option>
+                <option value="Medicine"  selected="@(Model.Category=="Medicine")">💊 Thuốc</option>
+                <option value="Toy"       selected="@(Model.Category=="Toy")">🎾 Đồ chơi</option>
+                <option value="Grooming"  selected="@(Model.Category=="Grooming")">✂️ Grooming</option>
+                <option value="Other"     selected="@(Model.Category=="Other")">📦 Khác</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select name="sort" class="form-select">
+                <option value="CreatedAt desc" selected="@(Model.Sort=="CreatedAt desc")">Mới nhất trước</option>
+                <option value="Name asc"       selected="@(Model.Sort=="Name asc")">Tên A-Z</option>
+                <option value="Name desc"      selected="@(Model.Sort=="Name desc")">Tên Z-A</option>
+                <option value="Price asc"      selected="@(Model.Sort=="Price asc")">Giá tăng dần</option>
+                <option value="Price desc"     selected="@(Model.Sort=="Price desc")">Giá giảm dần</option>
+                <option value="Stock asc"      selected="@(Model.Sort=="Stock asc")">Tồn kho thấp nhất</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <select name="pageSize" class="form-select">
+                <option value="5"  selected="@(Model.PageSize==5)">5</option>
+                <option value="10" selected="@(Model.PageSize==10)">10</option>
+                <option value="20" selected="@(Model.PageSize==20)">20</option>
+                <option value="50" selected="@(Model.PageSize==50)">50</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">
+                <i class="bi bi-funnel me-1"></i>Lọc
+            </button>
+            <a href="/Staff/Products" class="btn btn-outline-secondary ajax-link">Xoá lọc</a>
+        </div>
+    </form>
 </div>
 
-<div id="product-grid">
+<div id="product-grid" style="transition:opacity 0.2s ease;">
     <partial name="_ProductGrid" model="Model" />
 </div>
 
@@ -96,10 +104,11 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const grid = document.getElementById('product-grid');
-        
+
         function loadAjax(url) {
+            if (!grid) return;
             grid.style.opacity = '0.5';
-            
+
             fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -116,7 +125,7 @@
                 grid.style.opacity = '1';
             });
         }
-        
+
         // Handle filter form submit
         const filterForm = document.getElementById('filter-form');
         if (filterForm) {
@@ -126,26 +135,25 @@
                 loadAjax(url);
             });
         }
-        
+
         // Handle clicks on ajax links
         document.body.addEventListener('click', (e) => {
             const link = e.target.closest('a.ajax-link');
             if (link) {
                 e.preventDefault();
-                // Update active state for top category buttons
                 if(link.classList.contains('btn')) {
                     document.querySelectorAll('a.ajax-link.btn').forEach(l => {
-                        l.classList.remove('btn-success');
-                        l.classList.add('btn-outline-success');
+                        l.classList.remove('btn-primary');
+                        l.classList.add('btn-light', 'border');
                     });
-                    link.classList.remove('btn-outline-success');
-                    link.classList.add('btn-success');
+                    link.classList.remove('btn-light', 'border');
+                    link.classList.add('btn-primary');
                 }
-                
+
                 loadAjax(link.href);
             }
         });
-        
+
         // Handle back/forward browser buttons
         window.addEventListener('popstate', () => {
             loadAjax(location.href);

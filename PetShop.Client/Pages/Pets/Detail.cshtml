@@ -1,10 +1,16 @@
 @page "/Pets/Detail/{id:int}"
 @model PetShop.Client.Pages.Pets.DetailModel
-@{ ViewData["Title"] = Model.Pet?.Name ?? "Chi tiết thú cưng"; }
+@{
+    ViewData["Title"] = Model.Pet?.Name ?? "Chi tiết thú cưng";
+    string JsName(string name) => Html.Raw((name ?? "").Replace("\\", "\\\\").Replace("'", "\\'")).ToString()!;
+}
 
 @if (Model.ErrorMessage != null)
 {
-    <div class="alert alert-danger">@Model.ErrorMessage <a href="/" class="alert-link">Quay lại</a></div>
+    <div class="alert alert-danger d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+        <div>@Model.ErrorMessage <a href="/" class="alert-link ms-2">Trở về trang chủ</a></div>
+    </div>
 }
 else if (Model.Pet != null)
 {
@@ -12,107 +18,256 @@ else if (Model.Pet != null)
     var isAuth = !string.IsNullOrEmpty(HttpContext.Session.GetString("AccessToken"));
     var emoji = p.Category switch { "Dog"=>"🐕","Cat"=>"🐈","Bird"=>"🐦","Fish"=>"🐟","Rabbit"=>"🐇",_=>"🐾" };
 
-    <nav aria-label="breadcrumb" class="mb-3">
+    var sku = "PET" + p.Id.ToString("D3");
+    if (p.Name.Contains("Mã "))
+    {
+        var parts = p.Name.Split(new[] { "Mã " }, StringSplitOptions.None);
+        if (parts.Length > 1) sku = parts[1].Trim();
+    }
+    var gender = p.Name.Contains("Đực") ? "Đực" : (p.Name.Contains("Cái") ? "Cái" : "Đực/Cái");
+
+    <nav aria-label="breadcrumb" class="ps-breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
             <li class="breadcrumb-item"><a href="/#pets">Thú cưng</a></li>
-            <li class="breadcrumb-item active">@p.Name</li>
+            <li class="breadcrumb-item active" aria-current="page">@p.Breed</li>
         </ol>
     </nav>
 
     <div class="row g-4 mb-5">
-        <div class="col-md-5">
-            <div class="card border-0 shadow-sm overflow-hidden">
+        <!-- Media Gallery -->
+        <div class="col-lg-5">
+            <div class="ps-product-gallery shadow-sm position-relative">
                 @if (!string.IsNullOrEmpty(p.ImageUrl))
                 {
-                    <img src="@p.ImageUrl" class="img-fluid w-100" style="max-height:400px;object-fit:cover" alt="@p.Name"/>
+                    <img src="@p.ImageUrl" alt="@p.Name" class="img-fluid"/>
                 }
                 else
                 {
-                    <div class="d-flex align-items-center justify-content-center bg-light" style="height:300px;font-size:6rem">@emoji</div>
+                    <div class="ps-product-gallery__fallback">@emoji</div>
                 }
+                <div class="position-absolute top-0 start-0 m-3 d-flex flex-column gap-2">
+                    <span class="badge bg-danger shadow-sm px-3 py-2 fs-7 fw-bold">
+                        <i class="bi bi-patch-check-fill me-1"></i>Thuần chủng 100%
+                    </span>
+                    <span class="badge bg-success shadow-sm px-3 py-2 fs-7 fw-bold">
+                        <i class="bi bi-shield-check me-1"></i>Đã tiêm 2 mũi Vacxin
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pet Microchip & Origin badge -->
+            <div class="card mt-3 border-0 bg-light-subtle shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between small text-muted">
+                        <span><i class="bi bi-upc-scan me-1 text-primary"></i>Mã SKU: <strong class="text-dark">@sku</strong></span>
+                        <span><i class="bi bi-geo-alt-fill me-1 text-danger"></i>Trại giống: <strong class="text-dark">PetShop Farm</strong></span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-7">
-            <span class="badge bg-info text-dark mb-2">@p.Category</span>
-            <h2 class="fw-bold">@p.Name</h2>
-
-            @if (Model.Reviews.Count > 0)
-            {
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <div class="text-warning">@string.Concat(Enumerable.Range(1,5).Select(i => i <= (int)Math.Round(Model.AverageRating) ? "⭐" : "☆"))</div>
-                    <span class="text-muted small">@Model.AverageRating.ToString("F1") / 5 (@Model.Reviews.Count đánh giá)</span>
+        <!-- Pet Profile Panel -->
+        <div class="col-lg-7">
+            <div class="ps-detail-panel">
+                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                    <span class="badge bg-success-subtle text-success fw-semibold px-3 py-1.5 fs-7">
+                        <i class="bi bi-heart-pulse-fill me-1"></i>@p.Category
+                    </span>
+                    <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-1.5 fs-7">
+                        <i class="bi bi-gender-ambiguous me-1"></i>Giới tính: @gender
+                    </span>
+                    @if (p.Status == "Available")
+                    {
+                        <span class="badge bg-success text-white fw-semibold px-3 py-1.5 fs-7">
+                            <i class="bi bi-check2-circle me-1"></i>Đang sẵn sàng đón về
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary-subtle text-secondary fw-semibold px-3 py-1.5 fs-7">
+                            @(p.Status == "Sold" ? "❌ Đã được nhận nuôi" : "⏳ Đã có khách đặt cọc")
+                        </span>
+                    }
                 </div>
-            }
 
-            <div class="display-6 text-success fw-bold mb-3">@p.Price.ToString("N0")đ</div>
+                <h1 class="mb-2 fs-2 fw-bold text-dark">@p.Name</h1>
 
-            <div class="row g-3 mb-3">
-                <div class="col-6">
-                    <div class="card bg-light border-0 p-3 text-center">
-                        <div class="fw-bold">@p.Breed</div>
-                        <small class="text-muted">Giống</small>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="card bg-light border-0 p-3 text-center">
-                        <div class="fw-bold">@p.AgeMonths tháng</div>
-                        <small class="text-muted">Tuổi</small>
-                    </div>
-                </div>
-            </div>
-
-            <span class="badge @(p.Status == "Available" ? "bg-success" : "bg-secondary") mb-3 fs-6">
-                @(p.Status == "Available" ? "✅ Đang bán" : p.Status == "Sold" ? "❌ Đã bán" : "⏳ Đã đặt cọc")
-            </span>
-
-            <p class="text-muted mb-4">@p.Description</p>
-
-            <div class="d-flex gap-3">
-                @if (p.Status == "Available")
+                @if (Model.Reviews.Count > 0)
                 {
-                    <button class="btn btn-success btn-lg px-4"
-                            onclick="addToCart('pet', @p.Id, '@p.Name.Replace("'","\\'"))', @p.Price)">
-                        🛒 Đặt mua
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="text-warning fs-6">
+                            @string.Concat(Enumerable.Range(1,5).Select(i => i <= (int)Math.Round(Model.AverageRating) ? "⭐" : "☆"))
+                        </div>
+                        <span class="text-muted small fw-semibold">
+                            @Model.AverageRating.ToString("F1") / 5.0 (@Model.Reviews.Count đánh giá từ gia đình nuôi)
+                        </span>
+                    </div>
+                }
+
+                <div class="ps-detail-price mb-3">
+                    @p.Price.ToString("N0")<span class="fs-4 fw-normal text-muted ms-1">đ</span>
+                </div>
+
+                <!-- PetNow Standard Specifications Table -->
+                <div class="card mb-4 border shadow-none" style="border-radius:12px;overflow:hidden;">
+                    <div class="card-header bg-light py-2 px-3 fw-bold small text-uppercase text-secondary">
+                        <i class="bi bi-list-columns-reverse me-1 text-primary"></i>Thông số thú cưng chi tiết
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0 small">
+                            <tbody>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted" style="width:35%;">Mã định danh (SKU)</th>
+                                    <td class="py-2 fw-bold text-primary">@sku</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Giống loài (Breed)</th>
+                                    <td class="py-2 fw-semibold">@p.Breed</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Giới tính</th>
+                                    <td class="py-2 fw-semibold">@gender</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Độ tuổi</th>
+                                    <td class="py-2">@p.AgeMonths tháng tuổi</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Lịch tiêm phòng</th>
+                                    <td class="py-2 text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Đã tiêm 2 mũi vaccine (có sổ theo dõi)</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Tẩy giun định kỳ</th>
+                                    <td class="py-2 text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Đã xổ giun 2 lần an toàn</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Tình trạng sức khỏe</th>
+                                    <td class="py-2 text-success fw-semibold"><i class="bi bi-shield-fill-check me-1"></i>Khám tổng quát, âm tính Care & Parvo</td>
+                                </tr>
+                                <tr>
+                                    <th class="ps-3 py-2 text-muted">Nguồn gốc</th>
+                                    <td class="py-2">Trại sinh sản đạt chuẩn thuần chủng 100%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="small text-muted fw-bold text-uppercase mb-2">Đặc điểm & Tính cách bé</h6>
+                    <p class="ps-detail-copy">@p.Description</p>
+                </div>
+
+                <!-- PetNow 4-Point Guarantee / Trust Box -->
+                <div class="card bg-success-subtle border-success border-opacity-25 mb-4" style="border-radius:12px;">
+                    <div class="card-body p-3">
+                        <div class="fw-bold text-success mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-fill-check fs-5"></i>
+                            <span>CHÍNH SÁCH BẢO HÀNH & ƯU ĐÃI ĐÓN BÉ (CHUẨN PETNOW)</span>
+                        </div>
+                        <div class="row g-2 small text-dark">
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-truck text-success fs-6 mt-0.5"></i>
+                                    <div><strong>Miễn phí vận chuyển:</strong> Giao tận nhà toàn quốc, an toàn 100%.</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-gift text-success fs-6 mt-0.5"></i>
+                                    <div><strong>Quà tặng 500.000đ:</strong> Tặng bát ăn, vòng cổ, dây dắt & hạt ăn thử.</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-file-earmark-text text-success fs-6 mt-0.5"></i>
+                                    <div><strong>Hợp đồng mua bán:</strong> Cam kết thuần chủng trọn đời, pháp lý rõ ràng.</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bi bi-heart-pulse text-success fs-6 mt-0.5"></i>
+                                    <div><strong>Bảo hành 30 ngày:</strong> Bảo hiểm Care/Parvo & tư vấn thú y trọn đời 24/7.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap gap-2 pt-1 mb-3">
+                    @if (p.Status == "Available")
+                    {
+                        <button class="btn btn-success btn-lg px-4 flex-grow-1 fw-bold"
+                                onclick="addToCart('pet', @p.Id, '@JsName(p.Name)', @p.Price)">
+                            <i class="bi bi-bag-check-fill me-1"></i> ĐÓN BÉ NGAY (VÀO GIỎ HÀNG)
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-secondary btn-lg px-4 flex-grow-1" disabled>
+                            @(p.Status == "Sold" ? "Bé đã có gia đình mới" : "Đã có người đặt cọc")
+                        </button>
+                    }
+                    <button class="btn btn-outline-danger btn-lg px-3" id="wishBtn"
+                            onclick="toggleWishlist(@p.Id, '@JsName(p.Name)', '@p.Category', @p.Price)"
+                            title="Lưu vào danh sách yêu thích">
+                        <i class="bi bi-heart" id="wishIcon"></i>
                     </button>
-                }
-                else
-                {
-                    <button class="btn btn-secondary btn-lg px-4" disabled>@(p.Status == "Sold" ? "❌ Đã bán" : "⏳ Đã đặt cọc")</button>
-                }
-                <button class="btn btn-outline-danger btn-lg" id="wishBtn" onclick="toggleWishlist(@p.Id, '@p.Name.Replace("'","\\'"))', '@p.Category', @p.Price)">
-                    <i class="bi bi-heart" id="wishIcon"></i>
-                </button>
+                </div>
+
+                <!-- Quick Hotline & Video Call CTA -->
+                <div class="d-flex gap-2">
+                    <a href="tel:19001234" class="btn btn-outline-primary btn-sm flex-grow-1 py-2 fw-semibold">
+                        <i class="bi bi-telephone-fill me-1"></i>Gọi Hotline: 1900 1234
+                    </a>
+                    <a href="https://zalo.me" target="_blank" class="btn btn-outline-success btn-sm flex-grow-1 py-2 fw-semibold">
+                        <i class="bi bi-chat-dots-fill me-1"></i>Chat Zalo Video Call Xem Bé
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Reviews -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-semibold">⭐ Đánh giá (@Model.Reviews.Count)</h6>
+    <!-- Reviews Section -->
+    <div class="card ps-review-card shadow-sm mb-5">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-chat-heart text-danger me-2"></i>Đánh giá từ khách hàng nuôi bé (@Model.Reviews.Count)
+            </h5>
             @if (isAuth)
             {
-                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">Viết đánh giá</button>
-            }
-        </div>
-        <div class="card-body">
-            @if (Model.Reviews.Count == 0)
-            {
-                <p class="text-muted text-center py-3">Chưa có đánh giá nào.</p>
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                    <i class="bi bi-pencil-square me-1"></i>Viết cảm nhận
+                </button>
             }
             else
             {
-                foreach (var r in Model.Reviews)
+                <a href="/Auth/Login" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập để viết cảm nhận
+                </a>
+            }
+        </div>
+        <div class="card-body p-4">
+            @if (Model.Reviews.Count == 0)
+            {
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-stars fs-1 text-warning d-block mb-2"></i>
+                    <p class="mb-0">Chưa có cảm nhận nào cho bé cưng này. Đón bé về và gửi câu chuyện của bạn nhé!</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var r in Model.Reviews)
                 {
-                    <div class="border-bottom pb-3 mb-3">
-                        <div class="d-flex justify-content-between">
-                            <strong>@r.UserName</strong>
-                            <small class="text-muted">@r.CreatedAt.ToString("dd/MM/yyyy")</small>
+                    <div class="border-bottom pb-3 mb-3 last-border-0">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-bold"><i class="bi bi-person-circle text-muted me-1"></i>@r.UserName</span>
+                            <span class="text-muted small">@r.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
                         </div>
-                        <div class="text-warning">@string.Concat(Enumerable.Range(1,5).Select(i => i <= r.Rating ? "⭐" : "☆"))</div>
-                        <p class="mb-0 mt-1">@r.Comment</p>
+                        <div class="text-warning small mb-2">@string.Concat(Enumerable.Range(1,5).Select(i => i <= r.Rating ? "⭐" : "☆"))</div>
+                        <p class="mb-0 text-secondary">@r.Comment</p>
                     </div>
                 }
             }
@@ -121,29 +276,36 @@ else if (Model.Pet != null)
 }
 
 <!-- Review Modal -->
-<div class="modal fade" id="reviewModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">⭐ Viết đánh giá</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title fw-bold" id="reviewModalLabel">
+                    <i class="bi bi-star-fill text-warning me-2"></i>Cảm nhận về bé cưng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Số sao</label>
-                    <div class="d-flex gap-2 fs-3" id="starRating">
-                        @for (int i = 1; i <= 5; i++) { <span class="star-btn" data-val="@i" style="cursor:pointer" onclick="setRating(@i)">☆</span> }
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Mức độ hài lòng</label>
+                    <div class="d-flex gap-2 fs-2 user-select-none" id="starRating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <span class="star-btn text-warning" data-val="@i" style="cursor:pointer" onclick="setRating(@i)">☆</span>
+                        }
                     </div>
                     <input type="hidden" id="ratingVal" value="5"/>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Nội dung</label>
-                    <textarea id="reviewComment" class="form-control" rows="3" placeholder="Chia sẻ trải nghiệm..."></textarea>
+                    <label class="form-label fw-semibold small text-muted text-uppercase">Nội dung cảm nhận</label>
+                    <textarea id="reviewComment" class="form-control" rows="4" placeholder="Sức khỏe của bé, sự hòa nhập, dịch vụ hỗ trợ của PetShop..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button class="btn btn-primary" onclick="submitReview()">Gửi</button>
+                <button class="btn btn-light" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button class="btn btn-primary" onclick="submitReview()">
+                    <i class="bi bi-send me-1"></i>Gửi cảm nhận
+                </button>
             </div>
         </div>
     </div>
@@ -153,45 +315,79 @@ else if (Model.Pet != null)
 <script>
 function setRating(val) {
     document.getElementById('ratingVal').value = val;
-    document.querySelectorAll('.star-btn').forEach((s,i) => s.textContent = i < val ? '⭐' : '☆');
+    document.querySelectorAll('.star-btn').forEach((s, i) => s.textContent = i < val ? '⭐' : '☆');
 }
 setRating(5);
 
 async function submitReview() {
     const comment = document.getElementById('reviewComment').value.trim();
     const rating  = parseInt(document.getElementById('ratingVal').value);
-    if (!comment) { alert('Vui lòng nhập nội dung.'); return; }
+    if (!comment) { alert('Vui lòng nhập nội dung đánh giá.'); return; }
+
     const token = '@(HttpContext.Session.GetString("AccessToken") ?? "")';
-    const base  = '@(Model.ApiBaseUrl)';
-    const res   = await fetch(`${base}/api/reviews`, {
-        method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    const apiBase = '@(Model.ApiBaseUrl)';
+    const res = await fetch(`${apiBase}/api/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
         body: JSON.stringify({ productId: null, petId: @(Model.Pet?.Id ?? 0), rating, comment })
     });
     const data = await res.json();
-    if (data.success) { bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide(); location.reload(); }
-    else alert(data.message || 'Lỗi');
+    if (data.success) {
+        bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+        location.reload();
+    } else {
+        alert(data.message || 'Gửi đánh giá thất bại');
+    }
 }
 
 function getWishlist() { return JSON.parse(localStorage.getItem('petshop_wishlist') || '[]'); }
-function saveWishlist(l) { localStorage.setItem('petshop_wishlist', JSON.stringify(l)); }
+function saveWishlist(list) { localStorage.setItem('petshop_wishlist', JSON.stringify(list)); }
+
 function toggleWishlist(id, name, category, price) {
     let list = getWishlist();
     const idx = list.findIndex(x => x.type === 'pet' && x.id === id);
-    if (idx >= 0) { list.splice(idx,1); document.getElementById('wishIcon').className='bi bi-heart'; }
-    else { list.push({type:'pet',id,name,category,price}); document.getElementById('wishIcon').className='bi bi-heart-fill text-danger'; }
+    if (idx >= 0) {
+        list.splice(idx, 1);
+        document.getElementById('wishIcon').className = 'bi bi-heart';
+        if (typeof showToast === 'function') showToast('Đã bỏ yêu thích', 'info');
+    } else {
+        list.push({ type: 'pet', id, name, category, price });
+        document.getElementById('wishIcon').className = 'bi bi-heart-fill text-danger';
+        if (typeof showToast === 'function') showToast('Đã thêm vào yêu thích ❤️', 'success');
+    }
     saveWishlist(list);
 }
-const wl = getWishlist();
-if (wl.find(x => x.type==='pet'&&x.id===@(Model.Pet?.Id??0))) document.getElementById('wishIcon').className='bi bi-heart-fill text-danger';
 
-function addToCart(type,id,name,price) {
-    const cart=JSON.parse(sessionStorage.getItem('petshop_cart')||'[]');
-    const ex=cart.find(i=>i.type===type&&i.id===id);
-    if(ex){if(type==='pet'){alert('Đã có trong giỏ hàng');return;}ex.qty++;}
-    else cart.push({type,id,name,price,qty:1});
-    sessionStorage.setItem('petshop_cart',JSON.stringify(cart));
-    if(typeof updateCartBadge==='function')updateCartBadge();
-    alert(`✅ Đã thêm "${name}" vào giỏ!`);
+const wl = getWishlist();
+if (wl.find(x => x.type === 'pet' && x.id === @(Model.Pet?.Id ?? 0))) {
+    const icon = document.getElementById('wishIcon');
+    if (icon) icon.className = 'bi bi-heart-fill text-danger';
+}
+
+function addToCart(type, id, name, price) {
+    if (window.PetShopCart) {
+        const result = window.PetShopCart.add(type, id, name, price);
+        if (result.added) {
+            showToast(`✅ Đã thêm "${name}" vào giỏ hàng!`, 'success');
+        } else {
+            showToast('Thú cưng đã có trong giỏ hàng', 'info');
+        }
+        return;
+    }
+    const cart = JSON.parse(sessionStorage.getItem('petshop_cart') || '[]');
+    const ex = cart.find(i => i.type === type && i.id === id);
+    if (ex) {
+        if (type === 'pet') {
+            if (typeof showToast === 'function') showToast('Thú cưng đã có trong giỏ hàng', 'info');
+            return;
+        }
+        ex.qty++;
+    } else {
+        cart.push({ type, id, name, price, qty: 1 });
+    }
+    sessionStorage.setItem('petshop_cart', JSON.stringify(cart));
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+    if (typeof showToast === 'function') showToast(`✅ Đã thêm "${name}" vào giỏ hàng!`, 'success');
 }
 </script>
 }

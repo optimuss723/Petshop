@@ -12,43 +12,50 @@
 }
 
 <!-- Product Cards -->
-<div class="row row-cols-1 row-cols-md-3 row-cols-xl-4 g-3">
+<div class="row row-cols-1 row-cols-md-3 row-cols-xl-4 g-3 mb-4">
 @foreach (var p in Model.Products)
 {
     <div class="col">
-        <div class="card h-100">
+        <div class="card h-100 ps-management-card">
             @if (!string.IsNullOrEmpty(p.ImageUrl))
             {
-                <img src="@p.ImageUrl" class="card-img-top" style="height:160px;object-fit:cover" alt="@p.Name"/>
+                <div class="ps-management-card__thumb">
+                    <img src="@p.ImageUrl" alt="@p.Name" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'ps-management-card__thumb-fallback fs-1\'>@CategoryIcon(p.Category)</div>'"/>
+                </div>
             }
             else
             {
-                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:160px;font-size:2.5rem">
-                    @CategoryIcon(p.Category)
+                <div class="ps-management-card__thumb">
+                    <div class="ps-management-card__thumb-fallback fs-1">@CategoryIcon(p.Category)</div>
                 </div>
             }
-            <div class="card-body pb-2">
-                <div class="d-flex justify-content-between align-items-start mb-1">
-                    <h6 class="card-title mb-0 fw-semibold" style="font-size:.9rem">@p.Name</h6>
-                    <span class="badge @(p.IsActive ? "bg-success" : "bg-danger") ms-1" style="font-size:.65rem;white-space:nowrap">
-                        @(p.IsActive ? "Đang bán" : "Ngừng")
+            <div class="card-body p-3 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                    <span class="badge bg-light text-muted border" style="font-size:0.75rem">#@p.Id</span>
+                    <span class="badge @(p.IsActive ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger") fw-semibold">
+                        @(p.IsActive ? "Đang bán" : "Ngừng bán")
                     </span>
                 </div>
-                <p class="text-muted small mb-1 text-truncate">@p.Description</p>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <span class="fw-semibold text-primary">@p.Price.ToString("N0")đ</span>
-                    <span class="small @(p.Stock < 10 ? "text-danger fw-bold" : "text-muted")">
+                <h6 class="card-title fw-bold text-dark mb-1" style="font-size:0.95rem;line-height:1.35">@p.Name</h6>
+                <p class="text-muted small mb-2 text-truncate" style="max-height:2.6em;">@p.Description</p>
+
+                <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-primary fs-6">@p.Price.ToString("N0")đ</span>
+                    <span class="small badge @(p.Stock < 10 ? "bg-danger-subtle text-danger" : "bg-secondary-subtle text-secondary")">
                         Kho: @p.Stock
                     </span>
                 </div>
-                <span class="badge bg-secondary mt-1" style="font-size:.65rem">@p.Category</span>
             </div>
-            <div class="card-footer bg-transparent d-flex gap-2">
-                <a href="/Staff/Products/Edit/@p.Id" class="btn btn-outline-primary btn-sm flex-fill">Sửa</a>
+            <div class="card-footer bg-light border-top p-2.5 d-flex gap-2">
+                <a href="/Staff/Products/Edit/@p.Id" class="btn btn-sm btn-outline-primary flex-fill">
+                    <i class="bi bi-pencil-square me-1"></i>Sửa
+                </a>
                 <form method="post" asp-page-handler="Delete" class="flex-fill"
                       onsubmit="return confirm('Xoá sản phẩm @p.Name?')">
                     <input type="hidden" name="id" value="@p.Id"/>
-                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">Xoá</button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                        <i class="bi bi-trash me-1"></i>Xoá
+                    </button>
                 </form>
             </div>
         </div>
@@ -56,18 +63,25 @@
 }
 @if (!Model.Products.Any())
 {
-    <div class="col-12 text-center text-muted py-5">Không có sản phẩm nào</div>
+    <div class="col-12">
+        <div class="ps-empty card">
+            <div class="ps-empty__icon"><i class="bi bi-box2"></i></div>
+            <h5 class="fw-bold mb-1">Không tìm thấy sản phẩm nào</h5>
+            <p class="text-muted small mb-3">Thử đổi điều kiện tìm kiếm hoặc thêm mới sản phẩm vào kho.</p>
+            <a href="/Staff/Products/Edit" class="btn btn-primary btn-sm px-4">Thêm sản phẩm</a>
+        </div>
+    </div>
 }
 </div>
 
 <!-- Pagination -->
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small mt-3">
-    <span>
-        Tổng: @Model.TotalCount sản phẩm
-        <span class="badge @(Model.UsedOData ? "bg-success" : "bg-secondary") ms-2">
-            @(Model.UsedOData ? "OData" : "Fallback API")
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 bg-white rounded border">
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-muted small">Tổng: <strong>@Model.TotalCount</strong> sản phẩm</span>
+        <span class="badge @(Model.UsedOData ? "bg-success-subtle text-success border border-success-subtle" : "bg-secondary-subtle text-secondary")">
+            @(Model.UsedOData ? "⚡ OData Protocol" : "REST Fallback")
         </span>
-    </span>
+    </div>
     @if (Model.TotalPages > 1)
     {
         <nav>

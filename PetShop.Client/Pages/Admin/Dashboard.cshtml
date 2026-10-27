@@ -1,140 +1,163 @@
 @page
 @model PetShop.Client.Pages.Admin.DashboardModel
-@{ ViewData["Title"] = "Admin Dashboard"; }
+@{ ViewData["Title"] = "Bảng điều khiển Quản trị"; }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="ps-backoffice-heading">
     <div>
-        <h5 class="mb-0 fw-semibold">Dashboard</h5>
-        <small class="text-muted">Xin chào, @Model.UserName</small>
+        <span class="ps-kicker">Khu vực quản trị</span>
+        <h1>Tổng quan hệ thống</h1>
+        <p>Xin chào, <strong>@Model.UserName</strong>! Dưới đây là tình hình hoạt động của cửa hàng.</p>
     </div>
-    <span id="signalr-status" class="badge bg-secondary">Đang kết nối...</span>
-</div>
-
-@* ── Stat Cards hàng 1: Tổng quan ─────────────────────────────────── *@
-<div class="row g-3 mb-3">
-    <div class="col-6 col-md-3">
-        <div class="card text-center border-0 bg-primary bg-opacity-10 h-100">
-            <div class="card-body py-3">
-                <div class="fs-3 fw-bold text-primary">@Model.TotalProducts</div>
-                <div class="small text-muted">🛍️ Sản phẩm</div>
-                <div class="small text-muted mt-1">Staff quản lý</div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/Admin/Pets" class="text-decoration-none">
-            <div class="card text-center border-0 bg-success bg-opacity-10 h-100">
-                <div class="card-body py-3">
-                    <div class="fs-3 fw-bold text-success">@Model.TotalPets</div>
-                    <div class="small text-muted">🐾 Thú cưng</div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/Admin/Orders" class="text-decoration-none">
-            <div class="card text-center border-0 bg-warning bg-opacity-10 h-100">
-                <div class="card-body py-3">
-                    <div class="fs-3 fw-bold text-warning">@Model.PendingOrders</div>
-                    <div class="small text-muted">📦 Đơn chờ</div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <div class="card text-center border-0 bg-info bg-opacity-10 h-100">
-            <div class="card-body py-3">
-                <div class="fs-4 fw-bold text-info">@Model.TodayRevenue.ToString("N0")đ</div>
-                <div class="small text-muted">💰 Doanh thu hôm nay</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-@* ── Hàng 2: Người dùng ─────────────────────────────────────────── *@
-<div class="row g-3 mb-4">
-    <div class="col-4">
-        <a href="/Admin/Users" class="text-decoration-none">
-            <div class="card border-0 bg-primary bg-opacity-10 h-100">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <span style="font-size:2rem">👥</span>
-                    <div>
-                        <div class="fs-4 fw-bold text-primary">@Model.TotalUsers</div>
-                        <div class="small text-muted">Tổng người dùng</div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-4">
-        <a href="/Admin/Users" class="text-decoration-none">
-            <div class="card border-0 bg-warning bg-opacity-10 h-100">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <span style="font-size:2rem">🔧</span>
-                    <div>
-                        <div class="fs-4 fw-bold text-warning">@Model.TotalStaff</div>
-                        <div class="small text-muted">Nhân viên (Staff)</div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-4">
-        <a href="/Admin/Users" class="text-decoration-none">
-            <div class="card border-0 bg-success bg-opacity-10 h-100">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <span style="font-size:2rem">🛒</span>
-                    <div>
-                        <div class="fs-4 fw-bold text-success">@Model.TotalCustomers</div>
-                        <div class="small text-muted">Khách hàng</div>
-                    </div>
-                </div>
-            </div>
-        </a>
+    <div class="d-flex align-items-center gap-2">
+        <span id="signalr-status" class="badge bg-secondary-subtle text-secondary border px-3 py-2 fw-semibold">
+            <span class="spinner-grow spinner-grow-sm me-1"></span>Đang kết nối...
+        </span>
     </div>
 </div>
 
 <div id="order-alerts"></div>
 
-<div class="row g-3">
+@* ── Stat Cards hàng 1: Tổng quan ─────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <a href="/Admin/Products" class="text-decoration-none">
+            <div class="ps-metric">
+                <div class="ps-metric__icon"><i class="bi bi-box-seam"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.TotalProducts</div>
+                    <div class="ps-metric__label">Sản phẩm trong kho</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/Admin/Pets" class="text-decoration-none">
+            <div class="ps-metric">
+                <div class="ps-metric__icon text-success" style="background:#e8f7f1;"><i class="bi bi-heart-pulse"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.TotalPets</div>
+                    <div class="ps-metric__label">Thú cưng thuần chủng</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/Admin/Orders" class="text-decoration-none">
+            <div class="ps-metric ps-metric--sun">
+                <div class="ps-metric__icon"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.PendingOrders</div>
+                    <div class="ps-metric__label">Đơn hàng chờ xử lý</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/Admin/Reports" class="text-decoration-none">
+            <div class="ps-metric ps-metric--blue">
+                <div class="ps-metric__icon"><i class="bi bi-cash-stack"></i></div>
+                <div>
+                    <div class="ps-metric__value" style="font-size:1.25rem;">@Model.TodayRevenue.ToString("N0")đ</div>
+                    <div class="ps-metric__label">Doanh thu hôm nay</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+@* ── Hàng 2: Người dùng ─────────────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <a href="/Admin/Users" class="text-decoration-none">
+            <div class="ps-metric">
+                <div class="ps-metric__icon" style="background:#eef8f3;color:#087d62;"><i class="bi bi-people-fill"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.TotalUsers</div>
+                    <div class="ps-metric__label">Tổng tài khoản</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="/Admin/Users" class="text-decoration-none">
+            <div class="ps-metric ps-metric--sun">
+                <div class="ps-metric__icon"><i class="bi bi-person-badge"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.TotalStaff</div>
+                    <div class="ps-metric__label">Nhân viên phụ trách</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="/Admin/Users" class="text-decoration-none">
+            <div class="ps-metric ps-metric--blue">
+                <div class="ps-metric__icon"><i class="bi bi-person-heart"></i></div>
+                <div>
+                    <div class="ps-metric__value">@Model.TotalCustomers</div>
+                    <div class="ps-metric__label">Khách hàng thành viên</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
     @* ── Đơn hàng gần đây ─────────────────────────────────────────── *@
     <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">📋 Đơn hàng gần đây</span>
-                <a href="/Admin/Orders" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+        <div class="ps-table-wrap">
+            <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-receipt text-primary me-2"></i>Đơn hàng vừa đặt mới nhất</h6>
+                <a href="/Admin/Orders" class="btn btn-sm btn-outline-primary">Xem toàn bộ đơn hàng →</a>
             </div>
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
                         <tr>
-                            <th>#</th><th>Khách hàng</th><th>Tổng tiền</th><th>Trạng thái</th><th>Ngày</th><th></th>
+                            <th class="ps-3">Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Tổng thanh toán</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày đặt</th>
+                            <th class="text-end pe-3">Chi tiết</th>
                         </tr>
                     </thead>
                     <tbody>
                     @foreach (var o in Model.RecentOrders)
                     {
+                        var statusBadge = o.Status switch {
+                            "Pending"        => "bg-warning-subtle text-warning-emphasis",
+                            "Confirmed"      => "bg-info-subtle text-info-emphasis",
+                            "Shipping"       => "bg-primary-subtle text-primary",
+                            "AwaitingReceipt"=> "bg-warning-subtle text-warning-emphasis",
+                            "Delivered"      => "bg-success-subtle text-success",
+                            _                => "bg-secondary-subtle text-secondary"
+                        };
+                        var statusLabel = o.Status switch {
+                            "Pending"        => "⏳ Chờ duyệt",
+                            "Confirmed"      => "✅ Đã xác nhận",
+                            "Shipping"       => "🚚 Đang giao",
+                            "AwaitingReceipt"=> "📬 Chờ khách nhận",
+                            "Delivered"      => "📦 Đã hoàn tất",
+                            "Cancelled"      => "❌ Đã huỷ",
+                            _ => o.Status
+                        };
                         <tr>
-                            <td>@o.Id</td>
-                            <td>@o.UserName</td>
-                            <td>@o.TotalAmount.ToString("N0")đ</td>
-                            <td>
-                                <span class="badge @(o.Status switch {
-                                    "Pending"        => "bg-warning text-dark",
-                                    "Confirmed"      => "bg-info",
-                                    "Shipping"       => "bg-primary",
-                                    "AwaitingReceipt"=> "bg-warning text-dark",
-                                    "Delivered"      => "bg-success",
-                                    _                => "bg-secondary"
-                                })">@o.Status</span>
+                            <td class="ps-3 fw-bold text-dark">#@o.Id</td>
+                            <td class="fw-semibold">@o.UserName</td>
+                            <td class="fw-bold text-success">@o.TotalAmount.ToString("N0")đ</td>
+                            <td><span class="badge @statusBadge">@statusLabel</span></td>
+                            <td class="small text-muted">@o.CreatedAt.ToString("dd/MM HH:mm")</td>
+                            <td class="text-end pe-3">
+                                <a href="/Admin/Orders/Detail/@o.Id" class="btn btn-sm btn-outline-secondary">
+                                    Chi tiết <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
                             </td>
-                            <td>@o.CreatedAt.ToString("dd/MM HH:mm")</td>
-                            <td><a href="/Admin/Orders/Detail/@o.Id" class="btn btn-sm btn-outline-secondary">Chi tiết</a></td>
                         </tr>
                     }
                     @if (!Model.RecentOrders.Any())
                     {
-                        <tr><td colspan="6" class="text-center text-muted py-3">Chưa có đơn hàng</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Chưa có đơn hàng nào trong hệ thống</td></tr>
                     }
                     </tbody>
                 </table>
@@ -156,24 +179,33 @@ const conn   = new signalR.HubConnectionBuilder()
 conn.on("NewOrder", data => {
     const amt    = new Intl.NumberFormat('vi-VN').format(data.totalAmount);
     const alerts = document.getElementById("order-alerts");
-    alerts.insertAdjacentHTML("afterbegin", `
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Đơn hàng mới #${data.id}</strong> — ${amt}đ vừa được đặt!
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`);
+    if (alerts) {
+        alerts.insertAdjacentHTML("afterbegin", `
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-3 shadow-sm" role="alert">
+                <i class="bi bi-bell-fill fs-5 text-success"></i>
+                <div>
+                    <strong>Đơn hàng mới #${data.id}</strong> — ${amt}đ vừa được đặt trên hệ thống!
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>`);
+    }
 });
 
 conn.start()
     .then(async () => {
         const badge = document.getElementById("signalr-status");
-        badge.className   = "badge bg-success";
-        badge.textContent = "🟢 Đã kết nối";
+        if (badge) {
+            badge.className   = "badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-semibold";
+            badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Realtime sẵn sàng';
+        }
         await conn.invoke("JoinAdminGroup");
     })
     .catch(() => {
         const badge = document.getElementById("signalr-status");
-        badge.className   = "badge bg-danger";
-        badge.textContent = "🔴 Mất kết nối";
+        if (badge) {
+            badge.className   = "badge bg-danger-subtle text-danger border px-3 py-1.5 fw-semibold";
+            badge.innerHTML = '<i class="bi bi-wifi-off me-1"></i>Mất kết nối';
+        }
     });
 </script>
 }

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PetShop.Client.Services;
@@ -8,13 +9,27 @@ namespace PetShop.Client.Pages.Admin.Products;
 
 public class ProductFormInput
 {
-    public int     Id          { get; set; }
-    public string  Name        { get; set; } = "";
-    public string  Description { get; set; } = "";
-    public decimal Price       { get; set; }
-    public int     Stock       { get; set; }
-    public string  Category    { get; set; } = "";
-    public string? ImageUrl    { get; set; }
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "Tên sản phẩm không được để trống.")]
+    [StringLength(200, ErrorMessage = "Tên sản phẩm không được vượt quá 200 ký tự.")]
+    public string Name { get; set; } = "";
+
+    [Required(ErrorMessage = "Mô tả sản phẩm không được để trống.")]
+    [StringLength(2000, ErrorMessage = "Mô tả sản phẩm không được vượt quá 2000 ký tự.")]
+    public string Description { get; set; } = "";
+
+    [Range(typeof(decimal), "0.01", "79228162514264337593543950335", ErrorMessage = "Giá phải lớn hơn 0.")]
+    public decimal Price { get; set; }
+
+    [Range(0, int.MaxValue, ErrorMessage = "Tồn kho không được âm.")]
+    public int Stock { get; set; }
+
+    [Required(ErrorMessage = "Vui lòng chọn danh mục.")]
+    public string Category { get; set; } = "";
+
+    [Url(ErrorMessage = "URL ảnh không hợp lệ.")]
+    public string? ImageUrl { get; set; }
 }
 
 [RequestSizeLimit(10 * 1024 * 1024)]
@@ -42,11 +57,90 @@ public class EditModel : PageModel
         _logger = logger;
     }
 
-    public IActionResult OnGet(int? id)
-        => RedirectToPage("/Admin/Dashboard");
+    public async Task<IActionResult> OnGetAsync(int? id)
+    {
+        if (id.HasValue)
+        {
+            IsEdit = true;
+            var result = await _svc.GetByIdAsync(id.Value);
+            if (result?.Data == null) return RedirectToPage("Index");
 
-    public IActionResult OnPost()
-        => RedirectToPage("/Admin/Dashboard");
+            var product = result.Data;
+            Input = new ProductFormInput
+            {
+                Id          = product.Id,
+                Name        = product.Name,
+                Description = product.Description,
+                Price       = product.Price,
+                Stock       = product.Stock,
+                Category    = product.Category,
+                ImageUrl    = product.ImageUrl
+            };
+        }
+
+        return Page();
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        IsEdit = Input.Id > 0;
+        if (!ModelState.IsValid) return Page();
+
+        try
+        {
+            var uploadedUrl = await SaveUploadedImageAsync();
+            if (uploadedUrl == null && !string.IsNullOrEmpty(ErrorMessage))
+                return Page();
+
+            if (!string.IsNullOrEmpty(uploadedUrl))
+                Input.ImageUrl = uploadedUrl;
+
+            if (!Enum.TryParse<ProductCategory>(Input.Category, ignoreCase: true, out var category))
+            {
+                ModelState.AddModelError("Input.Category", "Vui lòng chọn danh mục hợp lệ.");
+                return Page();
+            }
+
+            var request = new ProductRequest(
+                Input.Name,
+                Input.Description,
+                Input.Price,
+                Input.Stock,
+                category,
+                Input.ImageUrl);
+
+            if (Input.Id > 0)
+            {
+                var result = await _svc.UpdateAsync(Input.Id, request);
+                if (result?.Success != true)
+                {
+                    ErrorMessage = result?.Message;
+                    return Page();
+                }
+
+                TempData["Message"] = "Cập nhật sản phẩm thành công.";
+            }
+            else
+            {
+                var result = await _svc.CreateAsync(request);
+                if (result?.Success != true)
+                {
+                    ErrorMessage = result?.Message;
+                    return Page();
+                }
+
+                TempData["Message"] = "Thêm sản phẩm thành công.";
+            }
+
+            return RedirectToPage("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save product from admin form.");
+            ErrorMessage = $"Không thể lưu sản phẩm: {ex.Message}";
+            return Page();
+        }
+    }
 
     private async Task<string?> SaveUploadedImageAsync()
     {

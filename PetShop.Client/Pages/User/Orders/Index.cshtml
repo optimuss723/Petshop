@@ -1,376 +1,267 @@
 @page
 @model PetShop.Client.Pages.User.Orders.IndexModel
 @{
-    ViewData["Title"]       = "Lịch sử đơn hàng";
-    ViewData["Description"] = "Xem toàn bộ lịch sử đơn hàng của bạn";
+    ViewData["Title"]       = "Lịch sử đơn mua";
+    ViewData["Description"] = "Xem và theo dõi toàn bộ đơn hàng của bạn tại PetShop";
 }
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
     var alertClass = Model.Message.StartsWith("✅") ? "alert-success" : "alert-danger";
-    <div class="alert @alertClass alert-dismissible fade show mb-4" role="alert">
+    <div class="alert @alertClass alert-dismissible fade show mb-4 shadow-sm" role="alert">
         @Model.Message
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
     <div>
-        <h5 class="mb-0 fw-bold">📦 Lịch sử đơn hàng</h5>
-        <small class="text-muted">Quản lý tất cả đơn hàng của bạn</small>
+        <span class="ps-kicker">Lịch sử giao dịch</span>
+        <h3 class="fw-bold mb-0">Đơn hàng của bạn 📦</h3>
     </div>
-    <a href="/" class="btn btn-outline-primary btn-sm">🛍️ Tiếp tục mua sắm</a>
+    <a href="/" class="btn btn-primary btn-sm">
+        <i class="bi bi-cart-plus me-1"></i>Tiếp tục mua hàng
+    </a>
 </div>
 
 <!-- Stats Cards -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <a href="?status=" class="text-decoration-none">
-            <div class="card border-0 text-center h-100 @(string.IsNullOrEmpty(Model.StatusFilter) ? "bg-primary text-white" : "bg-light")">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold">@Model.AllCount</div>
-                    <div class="small">Tất cả</div>
-                </div>
+            <div class="card ps-account-stat text-center h-100 @(string.IsNullOrEmpty(Model.StatusFilter) ? "border-success bg-success-subtle" : "")">
+                <div class="ps-account-stat__number @(string.IsNullOrEmpty(Model.StatusFilter) ? "text-success" : "text-dark")">@Model.AllCount</div>
+                <div class="small text-muted fw-semibold mt-1">Tất cả</div>
             </div>
         </a>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <a href="?status=Pending" class="text-decoration-none">
-            <div class="card border-0 text-center h-100 @(Model.StatusFilter == "Pending" ? "bg-warning text-dark" : "bg-warning bg-opacity-10")">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-warning">@Model.PendingCount</div>
-                    <div class="small text-muted">Đang chờ</div>
-                </div>
+            <div class="card ps-account-stat text-center h-100 @(Model.StatusFilter == "Pending" ? "border-warning bg-warning-subtle" : "")">
+                <div class="ps-account-stat__number text-warning">@Model.PendingCount</div>
+                <div class="small text-muted fw-semibold mt-1">Chờ xử lý</div>
             </div>
         </a>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <a href="?status=Shipping" class="text-decoration-none">
-            <div class="card border-0 text-center h-100 @(Model.StatusFilter == "Shipping" ? "bg-primary text-white" : "bg-primary bg-opacity-10")">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-primary">@Model.ShippingCount</div>
-                    <div class="small text-muted">Đang giao</div>
-                </div>
+            <div class="card ps-account-stat text-center h-100 @(Model.StatusFilter == "Shipping" ? "border-primary bg-primary-subtle" : "")">
+                <div class="ps-account-stat__number text-primary">@Model.ShippingCount</div>
+                <div class="small text-muted fw-semibold mt-1">Đang giao</div>
             </div>
         </a>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <a href="?status=AwaitingReceipt" class="text-decoration-none">
-            <div class="card border-0 text-center h-100 @(Model.StatusFilter == "AwaitingReceipt" ? "bg-warning text-dark" : "bg-warning bg-opacity-10")">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-warning">@Model.AwaitingReceiptCount</div>
-                    <div class="small text-muted">Chờ xác nhận</div>
-                </div>
+            <div class="card ps-account-stat text-center h-100 @(Model.StatusFilter == "AwaitingReceipt" ? "border-warning bg-warning-subtle" : "")">
+                <div class="ps-account-stat__number text-warning">@Model.AwaitingReceiptCount</div>
+                <div class="small text-muted fw-semibold mt-1">Chờ nhận</div>
             </div>
         </a>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md">
         <a href="?status=Delivered" class="text-decoration-none">
-            <div class="card border-0 text-center h-100 @(Model.StatusFilter == "Delivered" ? "bg-success text-white" : "bg-success bg-opacity-10")">
-                <div class="card-body py-3">
-                    <div class="fs-2 fw-bold text-success">@Model.DeliveredCount</div>
-                    <div class="small text-muted">Đã nhận</div>
-                </div>
+            <div class="card ps-account-stat text-center h-100 @(Model.StatusFilter == "Delivered" ? "border-success bg-success-subtle" : "")">
+                <div class="ps-account-stat__number text-success">@Model.DeliveredCount</div>
+                <div class="small text-muted fw-semibold mt-1">Đã giao</div>
             </div>
         </a>
     </div>
 </div>
 
-<!-- Total Spent Banner -->
-@if (Model.TotalSpent > 0)
-{
-    <div class="alert alert-info border-0 d-flex align-items-center gap-3 mb-4 py-3">
-        <span style="font-size:1.8rem">💰</span>
-        <div>
-            <div class="fw-semibold">Tổng chi tiêu (đơn đã nhận)</div>
-            <div class="fs-5 fw-bold text-primary">@Model.TotalSpent.ToString("N0")đ</div>
-        </div>
-    </div>
-}
-
 <!-- Status Filter Pills -->
-<div class="d-flex gap-2 flex-wrap mb-3">
-    <a href="?status=" class="btn btn-sm @(string.IsNullOrEmpty(Model.StatusFilter) ? "btn-dark" : "btn-outline-secondary")">Tất cả</a>
-    <a href="?status=Pending"   class="btn btn-sm @(Model.StatusFilter=="Pending"   ? "btn-warning text-dark" : "btn-outline-warning")">⏳ Chờ xử lý</a>
-    <a href="?status=Confirmed" class="btn btn-sm @(Model.StatusFilter=="Confirmed" ? "btn-info"              : "btn-outline-info")">✅ Đã xác nhận</a>
-    <a href="?status=Shipping"  class="btn btn-sm @(Model.StatusFilter=="Shipping"  ? "btn-primary"           : "btn-outline-primary")">🚚 Đang giao</a>
-    <a href="?status=AwaitingReceipt" class="btn btn-sm @(Model.StatusFilter=="AwaitingReceipt" ? "btn-warning text-dark" : "btn-outline-warning")">📬 Chờ bạn xác nhận</a>
-    <a href="?status=Delivered" class="btn btn-sm @(Model.StatusFilter=="Delivered" ? "btn-success"           : "btn-outline-success")">📦 Đã nhận</a>
-    <a href="?status=Cancelled" class="btn btn-sm @(Model.StatusFilter=="Cancelled" ? "btn-danger"            : "btn-outline-danger")">❌ Đã hủy</a>
+<div class="d-flex gap-2 flex-wrap mb-4">
+    <a href="?status=" class="btn btn-sm @(string.IsNullOrEmpty(Model.StatusFilter) ? "btn-dark" : "btn-light border")">Tất cả</a>
+    <a href="?status=Pending"   class="btn btn-sm @(Model.StatusFilter=="Pending"   ? "btn-warning text-dark fw-bold" : "btn-light border")">⏳ Chờ xử lý</a>
+    <a href="?status=Confirmed" class="btn btn-sm @(Model.StatusFilter=="Confirmed" ? "btn-info text-white fw-bold" : "btn-light border")">✅ Đã xác nhận</a>
+    <a href="?status=Shipping"  class="btn btn-sm @(Model.StatusFilter=="Shipping"  ? "btn-primary text-white fw-bold" : "btn-light border")">🚚 Đang giao</a>
+    <a href="?status=AwaitingReceipt" class="btn btn-sm @(Model.StatusFilter=="AwaitingReceipt" ? "btn-warning text-dark fw-bold" : "btn-light border")">📬 Chờ xác nhận nhận hàng</a>
+    <a href="?status=Delivered" class="btn btn-sm @(Model.StatusFilter=="Delivered" ? "btn-success text-white fw-bold" : "btn-light border")">📦 Đã nhận</a>
+    <a href="?status=Cancelled" class="btn btn-sm @(Model.StatusFilter=="Cancelled" ? "btn-danger text-white fw-bold" : "btn-light border")">❌ Đã hủy</a>
 </div>
 
 <!-- Order List -->
 @if (Model.Orders.Count == 0)
 {
-    <div class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5">
-            <div class="display-4 mb-3">📭</div>
-            <h6 class="text-muted">Không có đơn hàng nào</h6>
+    <div class="ps-empty card">
+        <div class="ps-empty__icon"><i class="bi bi-inbox"></i></div>
+        <h5 class="fw-bold mb-1">Không có đơn hàng nào</h5>
+        <p class="text-muted small mb-3">Bạn chưa có đơn hàng nào phù hợp với bộ lọc này.</p>
+        <div>
             @if (!string.IsNullOrEmpty(Model.StatusFilter))
             {
-                <p class="text-muted small">Bạn chưa có đơn hàng với trạng thái này</p>
-                <a href="?status=" class="btn btn-outline-primary btn-sm">Xem tất cả đơn hàng</a>
+                <a href="?status=" class="btn btn-outline-primary btn-sm px-3">Xem tất cả đơn hàng</a>
             }
             else
             {
-                <a href="/" class="btn btn-primary btn-sm mt-2">🛍️ Mua sắm ngay</a>
+                <a href="/" class="btn btn-primary btn-sm px-4">Bắt đầu mua sắm ngay</a>
             }
         </div>
     </div>
 }
 else
 {
-    <div class="d-flex flex-column gap-3">
+    <div class="d-flex flex-column gap-3 mb-4">
     @foreach (var o in Model.Orders)
     {
-        var statusBadge = o.Status switch {
-            "Pending"   => "bg-warning text-dark",
-            "Confirmed" => "bg-info",
-            "Shipping"  => "bg-primary",
-            "AwaitingReceipt" => "bg-warning text-dark",
-            "Delivered" => "bg-success",
-            "Cancelled" => "bg-secondary",
-            _           => "bg-secondary"
-        };
-        var statusIcon = o.Status switch {
-            "Pending"   => "⏳",
-            "Confirmed" => "✅",
-            "Shipping"  => "🚚",
-            "AwaitingReceipt" => "📬",
-            "Delivered" => "📦",
-            "Cancelled" => "❌",
-            _           => "❓"
-        };
-        var statusLabel = o.Status switch {
-            "Pending" when o.IsCod => "Chờ shop xác nhận",
-            "Pending" => "Chờ thanh toán PayOS",
-            "Confirmed" when o.IsCod => "Shop đã xác nhận COD",
-            "Confirmed" => "Đã thanh toán PayOS",
-            "Shipping" => "Đang giao",
-            "AwaitingReceipt" => "Chờ bạn xác nhận đã nhận",
-            "Delivered" => "Đã nhận",
-            "Cancelled" => "Đã hủy",
-            _ => o.Status
-        };
-        var paymentLabel = o.PaymentStatus switch {
-            "Paid" => "PayOS đã thanh toán",
-            "PayOSPending" => "PayOS chờ thanh toán",
-            "CODCollected" => "COD đã thu",
-            "Cancelled" => "Đã hủy",
-            _ => "COD thu khi giao"
-        };
-        var paymentBadge = o.PaymentStatus switch {
-            "Paid" => "bg-success",
-            "PayOSPending" => "bg-warning text-dark",
-            "CODCollected" => "bg-success",
-            "Cancelled" => "bg-secondary",
-            _ => "bg-light text-dark border"
-        };
-        var paymentHint = o.PaymentStatus switch {
-            "Paid" => "Đơn này đã được PayOS xác nhận thanh toán.",
-            "PayOSPending" => "Bạn cần hoàn tất thanh toán PayOS để shop xử lý đơn.",
-            "CODCollected" => "Shop đã ghi nhận đơn COD hoàn tất.",
-            "Cancelled" => "Đơn đã hủy nên không cần thanh toán.",
-            _ => "Bạn thanh toán tiền mặt cho shipper khi nhận hàng."
-        };
-        var items = o.Items ?? new List<PetShop.Shared.DTOs.Response.OrderItemResponse>();
-        var firstItem = items.FirstOrDefault();
-        var firstItemName = firstItem == null
-            ? "Chưa có mặt hàng"
-            : firstItem.ProductName ?? firstItem.PetName ?? (firstItem.ProductId.HasValue ? $"Sản phẩm #{firstItem.ProductId}" : $"Thú cưng #{firstItem.PetId}");
-        var itemSummary = items.Count switch {
-            0 => "Chưa có mặt hàng",
-            1 => firstItemName,
-            _ => $"{firstItemName} + {items.Count - 1} món khác"
-        };
-        var trackingSummary = string.IsNullOrEmpty(o.TrackingCode)
-            ? "Chưa có vận đơn"
-            : $"{o.ShippingProvider}: {o.TrackingCode}";
-
-        <div class="card shadow-sm border-0 order-card" id="order-@o.Id">
-            <div class="card-body py-3" style="cursor:pointer" onclick="location.href='/User/Orders/Detail/@o.Id'">
-                <div class="row g-3 align-items-center">
-                    <div class="col-lg-7">
-                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                            <span class="fw-bold text-primary fs-5">#@o.Id</span>
-                            <span class="badge @statusBadge">@statusIcon @statusLabel</span>
-                            <span class="badge @paymentBadge">@paymentLabel</span>
-                            <span class="text-muted small">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                        </div>
-                        <div class="fw-semibold text-light mb-1">@itemSummary</div>
-                        <div class="d-flex flex-wrap gap-3 small text-muted">
-                            <span>🛍️ @items.Sum(i => i.Quantity) sản phẩm</span>
-                            <span>📍 @o.ShippingAddress</span>
-                            <span>🚚 @trackingSummary</span>
-                        </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="small text-muted">Tổng thanh toán</div>
-                        <div class="fw-bold text-success fs-5">@o.TotalAmount.ToString("N0")đ</div>
-                    </div>
-                    <div class="col-lg-2 text-lg-end">
-                        <a href="/User/Orders/Detail/@o.Id" class="btn btn-sm btn-outline-primary"
-                           onclick="event.stopPropagation()">Chi tiết</a>
-                    </div>
+        <div class="ps-shopee-card shadow-sm mb-3" id="order-@o.Id">
+            <!-- 1. Header: Store & Status -->
+            <div class="ps-shopee-card__header">
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <span class="ps-shopee-card__shop-badge">YÊU THÍCH+</span>
+                    <span class="fw-bold text-dark"><i class="bi bi-shop text-success me-1"></i>PetShop Official Store</span>
+                    <a href="/User/Orders/Detail/@o.Id" class="badge bg-light text-dark border text-decoration-none font-monospace">#@o.Id</a>
+                    <span class="text-muted small"><i class="bi bi-calendar3 me-1"></i>@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    @switch (o.Status)
+                    {
+                        case "Delivered":
+                            <span class="text-success small fw-bold"><i class="bi bi-check2-all me-1"></i>Giao hàng thành công</span>
+                            <span class="badge bg-success text-white px-2.5 py-1.5">HOÀN THÀNH</span>
+                            break;
+                        case "Shipping":
+                            <span class="text-primary small fw-bold"><i class="bi bi-truck me-1"></i>Đang giao hàng</span>
+                            <span class="badge bg-primary text-white px-2.5 py-1.5">ĐANG VẬN CHUYỂN</span>
+                            break;
+                        case "AwaitingReceipt":
+                            <span class="text-warning-emphasis small fw-bold"><i class="bi bi-box-seam me-1"></i>Chờ bạn nhận</span>
+                            <span class="badge bg-warning text-dark px-2.5 py-1.5">CHỜ NHẬN HÀNG</span>
+                            break;
+                        case "Confirmed":
+                            <span class="text-info-emphasis small fw-bold"><i class="bi bi-box2 me-1"></i>Shop đang chuẩn bị hàng</span>
+                            <span class="badge bg-info text-white px-2.5 py-1.5">ĐÃ XÁC NHẬN</span>
+                            break;
+                        case "Pending":
+                            <span class="text-warning-emphasis small fw-bold"><i class="bi bi-hourglass-split me-1"></i>@(o.IsCod ? "Chờ shop xác nhận" : "Chờ PayOS")</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1.5">CHỜ XỬ LÝ</span>
+                            break;
+                        case "Cancelled":
+                            <span class="text-secondary small fw-bold"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+                            <span class="badge bg-secondary text-white px-2.5 py-1.5">ĐÃ HỦY</span>
+                            break;
+                        default:
+                            <span class="badge bg-secondary text-white">@o.Status</span>
+                            break;
+                    }
                 </div>
             </div>
 
-            <!-- Order Detail (expandable) -->
-            <div class="card-body collapse-detail" id="detail-@o.Id" style="display:none">
-                <div class="row g-3">
-                    <!-- Info column -->
-                    <div class="col-md-5">
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-0">📍 Địa chỉ giao hàng</label>
-                            <div class="fw-semibold small">@o.ShippingAddress</div>
-                        </div>
-                        @if (!string.IsNullOrEmpty(o.Note))
-                        {
-                            <div class="mb-2">
-                                <label class="form-label small text-muted mb-0">📝 Ghi chú</label>
-                                <div class="small">@o.Note</div>
-                            </div>
-                        }
-                        <div class="mb-2">
-                            <label class="form-label small text-muted mb-0">📅 Ngày đặt</label>
-                            <div class="small">@o.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
-                        </div>
-                        @if (o.UpdatedAt.HasValue)
-                        {
-                            <div>
-                                <label class="form-label small text-muted mb-0">🔄 Cập nhật lần cuối</label>
-                                <div class="small">@o.UpdatedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
-                            </div>
-                        }
-                        <div class="mb-2 mt-2">
-                            <label class="form-label small text-muted mb-0">💳 Thanh toán</label>
-                            <div><span class="badge @paymentBadge">@paymentLabel</span></div>
-                            <div class="small text-muted mt-1">@paymentHint</div>
-                        </div>
-
-                        @* ── Thông tin vận chuyển ── *@
-                        @if (!string.IsNullOrEmpty(o.TrackingCode))
-                        {
-                            <div class="mt-3 p-3 rounded" style="background:linear-gradient(135deg,#e3f2fd,#e8f5e9);border:1px solid #90caf9">
-                                <div class="small text-muted mb-1 fw-semibold">🚚 Thông tin vận chuyển</div>
-                                <div class="fw-bold">@o.ShippingProvider</div>
-                                <div class="d-flex align-items-center gap-2 mt-1">
-                                    <span class="badge bg-primary font-monospace">@o.TrackingCode</span>
-                                    <button class="btn btn-xs btn-outline-secondary py-0 px-1 small"
-                                            onclick="navigator.clipboard.writeText('@o.TrackingCode');this.textContent='✓'"
-                                            title="Copy mã vận đơn">📋</button>
-                                </div>
-                                @if (!string.IsNullOrEmpty(o.TrackingUrl))
-                                {
-                                    <a href="@o.TrackingUrl" target="_blank"
-                                       class="btn btn-sm btn-primary mt-2 w-100">
-                                        🔍 Tra cứu vận đơn
-                                    </a>
-                                }
-                                @if (o.ShippedAt.HasValue)
-                                {
-                                    <div class="small text-muted mt-1">Tạo vận đơn: @o.ShippedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
-                                }
-                                @if (o.Status == "AwaitingReceipt")
-                                {
-                                    <div class="small text-warning-emphasis mt-2">
-                                        📬 Đơn được báo đã giao tới bạn. Nếu đã nhận hàng, hãy bấm xác nhận ở bên dưới.
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else if (o.Status == "Confirmed")
-                        {
-                            <div class="mt-3 p-2 rounded bg-warning bg-opacity-10 border border-warning small text-warning-emphasis">
-                                ⏳ @(o.IsCod ? "Shop đã xác nhận COD, đang chờ tạo vận đơn." : "PayOS đã thanh toán, đang chờ tạo vận đơn.")
-                            </div>
-                        }
-                        else if (o.Status == "AwaitingReceipt")
-                        {
-                            <div class="mt-3 p-2 rounded bg-warning bg-opacity-10 border border-warning small text-warning-emphasis">
-                                📬 Đơn được báo đã giao tới bạn. Nếu đã nhận hàng, hãy bấm xác nhận ở bên dưới.
-                            </div>
-                        }
-                    </div>
-
-                    <!-- Items column -->
-                    <div class="col-md-7">
-                        <label class="form-label small text-muted mb-2">🛍️ Chi tiết sản phẩm (@(o.Items?.Count ?? 0) món)</label>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-borderless mb-2">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="small">Mặt hàng</th>
-                                        <th class="small text-center">SL</th>
-                                        <th class="small text-end">Đơn giá</th>
-                                        <th class="small text-end">Thành tiền</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                @foreach (var item in o.Items ?? Enumerable.Empty<PetShop.Shared.DTOs.Response.OrderItemResponse>())
-                                {
-                                    var itemName = item.ProductName ?? item.PetName;
-                                    var itemType = item.ProductId.HasValue ? "Sản phẩm" : "Thú cưng";
-                                    var itemCode = item.ProductId ?? item.PetId;
-                                    <tr>
-                                        <td class="small">
-                                            <div class="fw-semibold">@(string.IsNullOrWhiteSpace(itemName) ? $"{itemType} #{itemCode}" : itemName)</div>
-                                            <div class="text-muted">@itemType #@itemCode</div>
-                                        </td>
-                                        <td class="small text-center">@item.Quantity</td>
-                                        <td class="small text-end">@item.UnitPrice.ToString("N0")đ</td>
-                                        <td class="small text-end fw-semibold">@item.SubTotal.ToString("N0")đ</td>
-                                    </tr>
-                                }
-                                </tbody>
-                                <tfoot class="border-top">
-                                    <tr>
-                                        <td colspan="3" class="text-end fw-bold small">Tổng cộng:</td>
-                                        <td class="text-end fw-bold text-success small">@o.TotalAmount.ToString("N0")đ</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action buttons -->
-                <div class="border-top pt-3 d-flex justify-content-end gap-2 mt-2">
-                    @if (o.Status == "Pending")
+            <!-- 2. Danh sách mặt hàng (Product Rows) -->
+            <div class="ps-shopee-card__body">
+                @if (o.Items != null && o.Items.Count > 0)
+                {
+                    foreach (var item in o.Items)
                     {
-                        <a asp-page="/User/PayOS" asp-route-orderId="@o.Id" class="btn btn-primary btn-sm">
-                            <i class="bi bi-qr-code me-1"></i>@(o.IsCod ? "Đổi sang PayOS" : "Tiếp tục thanh toán PayOS")
+                        var imgUrl = Model.GetItemImageUrl(item);
+                        var category = Model.GetItemCategory(item);
+                        var itemName = !string.IsNullOrWhiteSpace(item.ProductName) 
+                            ? item.ProductName 
+                            : (!string.IsNullOrWhiteSpace(item.PetName) ? item.PetName : (item.ProductId.HasValue ? $"Sản phẩm #{item.ProductId}" : $"Thú cưng #{item.PetId}"));
+                        var detailLink = item.ProductId.HasValue 
+                            ? $"/Products/Detail/{item.ProductId}" 
+                            : (item.PetId.HasValue ? $"/Pets/Detail/{item.PetId}" : $"/User/Orders/Detail/{o.Id}");
+
+                        <a href="@detailLink" class="ps-shopee-card__item">
+                            <img src="@imgUrl" alt="@itemName" class="ps-shopee-card__thumb" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'" />
+                            <div class="ps-shopee-card__item-info">
+                                <div class="ps-shopee-card__item-title" title="@itemName">@itemName</div>
+                                <div class="ps-shopee-card__item-sub">
+                                    <span>Phân loại: <strong class="text-dark">@category</strong></span>
+                                    <span class="text-muted">|</span>
+                                    <span>Số lượng: <strong class="text-dark">x@(item.Quantity)</strong></span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2" style="font-size:0.72rem"><i class="bi bi-shield-check me-1"></i>Đổi trả miễn phí 15 ngày</span>
+                                </div>
+                            </div>
+                            <div class="ps-shopee-card__item-price">
+                                <div class="text-muted small text-decoration-line-through">@((item.UnitPrice * 1.15m).ToString("N0"))đ</div>
+                                <div class="fw-bold" style="color: #008848; font-size: 1.05rem;">@item.UnitPrice.ToString("N0")đ</div>
+                            </div>
                         </a>
-                        <form method="post" asp-page-handler="Cancel"
-                              onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng #@o.Id?')">
-                            <input type="hidden" name="id" value="@o.Id"/>
-                            <input type="hidden" name="page" value="@Model.CurrentPage"/>
-                            <input type="hidden" name="status" value="@Model.StatusFilter"/>
-                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                ❌ Hủy đơn hàng
-                            </button>
-                        </form>
                     }
+                }
+                else
+                {
+                    <div class="p-3 text-muted small fst-italic">Thông tin sản phẩm đang được cập nhật...</div>
+                }
+            </div>
+
+            <!-- 3. Logistics Strip -->
+            <div class="ps-shopee-card__shipping-strip">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span><i class="bi bi-truck text-success me-1"></i>Vận chuyển: <strong>@(!string.IsNullOrEmpty(o.ShippingProvider) ? o.ShippingProvider : "Giao Hàng Nhanh - GHN")</strong></span>
+                    @if (!string.IsNullOrEmpty(o.TrackingCode))
+                    {
+                        <span class="badge bg-white text-dark border font-monospace">Mã vận đơn: @o.TrackingCode</span>
+                    }
+                    <span class="text-muted">|</span>
+                    <span class="badge @(o.IsCod ? "bg-light text-muted border" : "bg-success-subtle text-success border border-success-subtle")">
+                        <i class="bi @(o.IsCod ? "bi-cash-coin" : "bi-credit-card-2-front") me-1"></i>@(o.IsCod ? "COD (Thu tiền khi nhận)" : "PayOS Đã thanh toán")
+                    </span>
+                </div>
+                <div class="text-truncate text-muted" style="max-width: 360px;" title="@o.ShippingAddress">
+                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>@o.ShippingAddress
+                </div>
+            </div>
+
+            <!-- 4. Footer: Thành tiền & Thao tác Shopee -->
+            <div class="ps-shopee-card__footer">
+                <div class="ps-shopee-card__total">
+                    <span>Thành tiền (@(o.Items?.Sum(i => i.Quantity) ?? 1) sản phẩm):</span>
+                    <span class="ps-shopee-card__total-amount">@o.TotalAmount.ToString("N0")đ</span>
+                </div>
+                <div class="ps-shopee-card__actions">
+                    <a href="/User/Orders/Detail/@o.Id" class="btn btn-outline-secondary btn-sm px-3 fw-semibold">
+                        <i class="bi bi-eye me-1"></i>Xem chi tiết
+                    </a>
+
                     @if (o.Status == "Delivered")
                     {
-                        <a href="/Products/Detail" class="btn btn-outline-success btn-sm">
-                            ⭐ Đánh giá sản phẩm
+                        var jsonItems = JsonSerializer.Serialize(o.Items ?? []);
+                        <button type="button" class="btn ps-btn-reorder btn-sm px-3" onclick='reorderOrder(@Html.Raw(jsonItems))'>
+                            <i class="bi bi-arrow-repeat me-1"></i>Mua lại
+                        </button>
+                        <a href="/User/Orders/Detail/@o.Id" class="btn btn-outline-warning btn-sm px-3 fw-semibold text-dark">
+                            <i class="bi bi-star-fill text-warning me-1"></i>Đánh giá
                         </a>
                     }
-                    @if (o.Status == "AwaitingReceipt")
+                    else if (o.Status == "AwaitingReceipt")
                     {
-                        <form method="post" asp-page-handler="ConfirmReceived"
+                        <form method="post" asp-page-handler="ConfirmReceived" asp-route-page="@Model.CurrentPage" asp-route-status="@Model.StatusFilter" style="display:inline"
                               onsubmit="return confirm('Bạn xác nhận đã nhận được đơn hàng #@o.Id?')">
                             <input type="hidden" name="id" value="@o.Id"/>
-                            <input type="hidden" name="page" value="@Model.CurrentPage"/>
-                            <input type="hidden" name="status" value="@Model.StatusFilter"/>
-                            <button type="submit" class="btn btn-success btn-sm">
-                                📦 Đã nhận được hàng
+                            <button type="submit" class="btn btn-success btn-sm px-3 fw-semibold">
+                                <i class="bi bi-box2-heart me-1"></i>Đã nhận được hàng
                             </button>
                         </form>
-                        <span class="small text-muted align-self-center">
-                            Chưa nhận? Vui lòng liên hệ shop để kiểm tra vận đơn.
-                        </span>
+                    }
+                    else if (o.Status == "Shipping")
+                    {
+                        <a href="/User/Orders/Detail/@o.Id" class="btn btn-outline-primary btn-sm px-3 fw-semibold">
+                            <i class="bi bi-truck me-1"></i>Theo dõi đơn
+                        </a>
+                    }
+                    else if (o.Status == "Pending")
+                    {
+                        @if (!o.IsCod)
+                        {
+                            <a asp-page="/User/PayOS" asp-route-orderId="@o.Id" class="btn btn-success btn-sm px-3 fw-semibold">
+                                <i class="bi bi-qr-code me-1"></i>Thanh toán PayOS
+                            </a>
+                        }
+                        <form method="post" asp-page-handler="Cancel" asp-route-page="@Model.CurrentPage" asp-route-status="@Model.StatusFilter" style="display:inline"
+                              onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn hàng #@o.Id?')">
+                            <input type="hidden" name="id" value="@o.Id"/>
+                            <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-semibold">
+                                <i class="bi bi-x-circle me-1"></i>Hủy đơn
+                            </button>
+                        </form>
+                    }
+                    else if (o.Status == "Cancelled")
+                    {
+                        var jsonItems = JsonSerializer.Serialize(o.Items ?? []);
+                        <button type="button" class="btn ps-btn-reorder btn-sm px-3" onclick='reorderOrder(@Html.Raw(jsonItems))'>
+                            <i class="bi bi-arrow-repeat me-1"></i>Mua lại
+                        </button>
                     }
                 </div>
             </div>
@@ -382,7 +273,7 @@ else
     @if (Model.TotalPages > 1)
     {
         <nav class="d-flex justify-content-center mt-4">
-            <ul class="pagination">
+            <ul class="pagination pagination-sm">
                 <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
                     <a class="page-link" href="?status=@Model.StatusFilter&page=@(Model.CurrentPage-1)">‹ Trước</a>
                 </li>
@@ -409,25 +300,13 @@ else
 @if (Model.ShouldClearCart)
 {
     <text>
-    sessionStorage.removeItem('petshop_cart');
+    if (window.PetShopCart) window.PetShopCart.clear();
+    else sessionStorage.removeItem('petshop_cart');
     if (typeof updateCartBadge === 'function') updateCartBadge();
     </text>
 }
 
-function toggleDetail(id) {
-    const detail  = document.getElementById('detail-'  + id);
-    const chevron = document.getElementById('chevron-' + id);
-    const isOpen  = detail.style.display !== 'none';
-    detail.style.display    = isOpen ? 'none'         : 'block';
-    chevron.style.transform = isOpen ? ''             : 'rotate(180deg)';
-}
-
-// Auto-expand order from query ?expand=orderId
-const params   = new URLSearchParams(location.search);
-const expandId = params.get('expand');
-if (expandId) toggleDetail(expandId);
-
-// ── SignalR — cập nhật trạng thái realtime ───────────────────────
+// ── SignalR — realtime order status updates ───────────────────────
 const token  = '@HttpContext.Session.GetString("AccessToken")';
 const userId = '@HttpContext.Session.GetString("UserId")';
 const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders")';
@@ -438,53 +317,41 @@ if (token) {
         .withAutomaticReconnect()
         .build();
 
-    // Lắng nghe thay đổi trạng thái đơn
     conn.on('OrderStatusChanged', data => {
-        const badge = document.querySelector(`#order-${data.orderId} .badge`);
-        if (!badge) return;
-
-        const map = {
-            'Pending':   ['bg-warning text-dark', '⏳ Chờ xử lý'],
-            'Confirmed': ['bg-info',              '✅ Đã xác nhận'],
-            'Shipping':  ['bg-primary',           '🚚 Đang giao'],
-            'AwaitingReceipt': ['bg-warning text-dark', '📬 Chờ bạn xác nhận'],
-            'Delivered': ['bg-success',           '📦 Đã nhận'],
-            'Cancelled': ['bg-secondary',         '❌ Đã hủy'],
-        };
-        const [cls, label] = map[data.newStatus] ?? ['bg-secondary', data.newStatus];
-        badge.className = `badge ${cls}`;
-        badge.textContent = label;
-
-        // Nếu đơn vừa chuyển sang Shipping → hiện toast có link tracking
-        if (data.newStatus === 'Confirmed') {
-            showOrderToast(data.orderId, '✅ Đơn hàng đã được xác nhận. Nếu bạn thanh toán PayOS, hệ thống đã ghi nhận thanh toán thành công.');
-            setTimeout(() => location.reload(), 1800);
-        } else if (data.newStatus === 'Shipping') {
-            showOrderToast(data.orderId, '🚚 Đơn hàng của bạn đã được giao cho hãng vận chuyển!');
-            // Reload sau 2s để load tracking info mới
-            setTimeout(() => location.reload(), 2500);
-        } else if (data.newStatus === 'AwaitingReceipt') {
-            showOrderToast(data.orderId, '📬 Đơn được báo đã giao. Hãy xác nhận khi bạn đã nhận được hàng.');
-            setTimeout(() => location.reload(), 2000);
-        } else if (data.newStatus === 'Delivered') {
-            showOrderToast(data.orderId, '🎉 Cảm ơn bạn đã xác nhận đã nhận hàng!');
-        } else if (data.newStatus === 'Cancelled') {
-            showOrderToast(data.orderId, '❌ Đơn hàng đã bị hủy.');
+        if (typeof showToast === 'function') {
+            showToast(`Đơn hàng #${data.orderId}: trạng thái mới là ${data.newStatus}`, 'info');
         }
+        setTimeout(() => location.reload(), 2000);
     });
 
     conn.start().catch(console.warn);
 }
 
-function showOrderToast(orderId, msg) {
-    const container = document.querySelector('.container-fluid') ?? document.body;
-    const toast = document.createElement('div');
-    toast.className = 'alert alert-info alert-dismissible fade show position-fixed top-0 end-0 m-3';
-    toast.style.zIndex = '9999';
-    toast.innerHTML = `${msg} (<a href="?expand=${orderId}" class="alert-link">Xem đơn #${orderId}</a>)
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 6000);
+function reorderOrder(items) {
+    if (!items || !items.length) {
+        if (typeof showToast === 'function') showToast('Không có sản phẩm nào để mua lại', 'warning');
+        return;
+    }
+    let count = 0;
+    items.forEach(it => {
+        const type = it.ProductId ? 'product' : 'pet';
+        const id = it.ProductId || it.PetId;
+        const name = it.ProductName || it.PetName || 'Mặt hàng';
+        const price = it.UnitPrice || 0;
+        const qty = it.Quantity || 1;
+        for (let i = 0; i < qty; i++) {
+            if (typeof addPetShopCartItem === 'function') {
+                addPetShopCartItem(type, id, name, price);
+            }
+        }
+        count++;
+    });
+    if (typeof showToast === 'function') {
+        showToast(`Đã thêm ${count} mặt hàng vào giỏ hàng!`, 'success');
+    }
+    setTimeout(() => {
+        window.location.href = '/Cart';
+    }, 600);
 }
 </script>
 }

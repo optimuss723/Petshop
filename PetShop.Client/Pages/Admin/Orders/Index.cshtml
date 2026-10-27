@@ -2,52 +2,63 @@
 @model PetShop.Client.Pages.Admin.Orders.IndexModel
 @{ ViewData["Title"] = "Quản lý Đơn hàng"; }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0 fw-semibold">📦 Quản lý Đơn hàng</h5>
-    <span id="signalr-badge" class="badge bg-secondary">SignalR...</span>
+<div class="ps-backoffice-heading">
+    <div>
+        <span class="ps-kicker">Quản lý giao dịch</span>
+        <h1>Quản lý Đơn hàng</h1>
+        <p>Theo dõi luồng duyệt đơn, thanh toán PayOS / COD và tiến độ giao vận trên toàn hệ thống.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span id="signalr-badge" class="badge bg-secondary-subtle text-secondary border px-3 py-1.5 fw-semibold">
+            <span class="spinner-grow spinner-grow-sm me-1"></span>SignalR...
+        </span>
+    </div>
 </div>
 
 <div id="order-alerts"></div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert alert-success alert-dismissible fade show">
-        @Model.Message
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm">
+        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+        <div>@Model.Message</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
 }
 
 <!-- Filter Bar -->
-<div class="card mb-3">
-    <div class="card-body py-2">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-4">
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="Pending"   selected="@(Model.StatusFilter=="Pending")">⏳ Chờ xử lý</option>
-                    <option value="Confirmed" selected="@(Model.StatusFilter=="Confirmed")">✅ Đã xác nhận</option>
-                    <option value="Shipping"  selected="@(Model.StatusFilter=="Shipping")">🚚 Đang giao</option>
-                    <option value="AwaitingReceipt" selected="@(Model.StatusFilter=="AwaitingReceipt")">📬 Chờ khách xác nhận</option>
-                    <option value="Delivered" selected="@(Model.StatusFilter=="Delivered")">📦 Hoàn tất</option>
-                    <option value="Cancelled" selected="@(Model.StatusFilter=="Cancelled")">❌ Đã huỷ</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">Lọc</button>
-            </div>
-            <div class="col-md-2">
-                <a href="/Admin/Orders" class="btn btn-outline-secondary btn-sm w-100">Xoá lọc</a>
-            </div>
-        </form>
-    </div>
+<div class="ps-filter-toolbar mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <select name="status" class="form-select">
+                <option value="">Tất cả trạng thái đơn hàng</option>
+                <option value="Pending"   selected="@(Model.StatusFilter=="Pending")">⏳ Đơn chờ xử lý (Pending)</option>
+                <option value="Confirmed" selected="@(Model.StatusFilter=="Confirmed")">✅ Đã xác nhận thanh toán/COD</option>
+                <option value="Shipping"  selected="@(Model.StatusFilter=="Shipping")">🚚 Đang giao hàng (Shipping)</option>
+                <option value="AwaitingReceipt" selected="@(Model.StatusFilter=="AwaitingReceipt")">📬 Chờ khách nhận hàng</option>
+                <option value="Delivered" selected="@(Model.StatusFilter=="Delivered")">📦 Giao thành công (Delivered)</option>
+                <option value="Cancelled" selected="@(Model.StatusFilter=="Cancelled")">❌ Đã huỷ đơn (Cancelled)</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">
+                <i class="bi bi-funnel me-1"></i>Lọc
+            </button>
+            <a href="/Admin/Orders" class="btn btn-outline-secondary">Xoá lọc</a>
+        </div>
+    </form>
 </div>
 
-<div class="card">
+<div class="ps-table-wrap mb-4">
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-receipt-cutoff text-primary me-2"></i>Danh sách đơn hàng</h6>
+        <span class="text-muted small">Tổng: <strong>@Model.Orders.Count</strong> đơn hàng</span>
+    </div>
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
-                    <th>#</th>
+                    <th class="ps-3" style="width:80px">Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Địa chỉ giao</th>
                     <th>Tổng tiền</th>
@@ -55,106 +66,112 @@
                     <th>Trạng thái</th>
                     <th>Vận đơn</th>
                     <th>Ngày đặt</th>
-                    <th class="text-end">Thao tác</th>
+                    <th class="text-end pe-3">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
             @foreach (var o in Model.Orders)
             {
                 var statusLabel = o.Status switch {
-                    "Pending" when o.IsCod => "Chờ shop xác nhận",
-                    "Pending" => "Chờ thanh toán PayOS",
-                    "Confirmed" when o.IsCod => "Đã xác nhận COD",
+                    "Pending" when o.IsCod => "Chờ duyệt COD",
+                    "Pending" => "Chờ PayOS",
+                    "Confirmed" when o.IsCod => "Đã duyệt COD",
                     "Confirmed" => "Đã thanh toán PayOS",
                     "Shipping" => "Đang giao",
-                    "AwaitingReceipt" => "Chờ khách xác nhận",
+                    "AwaitingReceipt" => "Chờ khách nhận",
                     "Delivered" => "Hoàn tất",
                     "Cancelled" => "Đã hủy",
                     _ => o.Status
                 };
+                var statusBadge = o.Status switch {
+                    "Pending"   => "bg-warning-subtle text-warning-emphasis",
+                    "Confirmed" => "bg-info-subtle text-info-emphasis",
+                    "Shipping"  => "bg-primary-subtle text-primary",
+                    "AwaitingReceipt" => "bg-warning-subtle text-warning-emphasis",
+                    "Delivered" => "bg-success-subtle text-success",
+                    _           => "bg-secondary-subtle text-secondary"
+                };
                 var paymentLabel = o.PaymentStatus switch {
                     "Paid" => "PayOS đã thanh toán",
-                    "PayOSPending" => "PayOS chờ thanh toán",
+                    "PayOSPending" => "PayOS chờ TT",
                     "CODCollected" => "COD đã thu",
                     "Cancelled" => "Đã hủy",
-                    _ => "COD thu khi giao"
+                    _ => "COD khi nhận"
                 };
                 var paymentBadge = o.PaymentStatus switch {
-                    "Paid" => "bg-success",
-                    "PayOSPending" => "bg-warning text-dark",
-                    "CODCollected" => "bg-success",
-                    "Cancelled" => "bg-secondary",
-                    _ => "bg-light text-dark border"
+                    "Paid" => "bg-success-subtle text-success",
+                    "PayOSPending" => "bg-warning-subtle text-warning-emphasis",
+                    "CODCollected" => "bg-success-subtle text-success",
+                    "Cancelled" => "bg-secondary-subtle text-secondary",
+                    _ => "bg-light text-muted border"
                 };
                 var canConfirmCod = o.IsCod && o.Status == "Pending";
                 var waitingPayOs = !o.IsCod && o.Status == "Pending";
 
                 <tr id="row-@o.Id">
-                    <td class="small">
-                        <a href="/Admin/Orders/Detail/@o.Id" class="fw-semibold text-decoration-none">#@o.Id</a>
+                    <td class="ps-3 fw-bold text-dark">
+                        <a href="/Admin/Orders/Detail/@o.Id" class="text-decoration-none">#@o.Id</a>
                     </td>
                     <td>
-                        @o.UserName
-                        <br/><small class="text-muted">@o.CustomerPhone</small>
+                        <div class="fw-semibold text-dark">@o.UserName</div>
+                        <div class="small text-muted"><i class="bi bi-telephone me-1"></i>@o.CustomerPhone</div>
                     </td>
-                    <td class="text-truncate" style="max-width:160px">@o.ShippingAddress</td>
-                    <td class="fw-semibold">@o.TotalAmount.ToString("N0")đ</td>
+                    <td class="text-truncate" style="max-width:200px" title="@o.ShippingAddress">
+                        <small class="text-muted">@o.ShippingAddress</small>
+                    </td>
+                    <td class="fw-bold text-success">@o.TotalAmount.ToString("N0")đ</td>
                     <td>
                         <span class="badge @paymentBadge">@paymentLabel</span>
                     </td>
                     <td>
-                        <span class="badge @(o.Status switch {
-                            "Pending"   => "bg-warning text-dark",
-                            "Confirmed" => "bg-info",
-                            "Shipping"  => "bg-primary",
-                            "AwaitingReceipt" => "bg-warning text-dark",
-                            "Delivered" => "bg-success",
-                            _           => "bg-secondary"
-                        })">@statusLabel</span>
+                        <span class="badge @statusBadge">@statusLabel</span>
                     </td>
                     <td>
                         @if (!string.IsNullOrEmpty(o.TrackingCode))
                         {
-                            <a href="@o.TrackingUrl" target="_blank" class="small text-decoration-none">
-                                📦 @o.TrackingCode
+                            <a href="@o.TrackingUrl" target="_blank" class="small text-decoration-none fw-semibold">
+                                <i class="bi bi-box-seam me-1"></i>@o.TrackingCode
                             </a>
-                            <br/><small class="text-muted">@o.ShippingProvider</small>
+                            <div class="small text-muted" style="font-size:0.75rem">@o.ShippingProvider</div>
                         }
                         else
                         {
                             <span class="text-muted small">—</span>
                         }
                     </td>
-                    <td class="small">@o.CreatedAt.ToString("dd/MM HH:mm")</td>
-                    <td class="text-end">
-                        @if (waitingPayOs)
-                        {
-                            <span class="badge bg-warning text-dark me-1">Chờ PayOS webhook</span>
-                        }
-                        @if (canConfirmCod)
-                        {
-                            <span class="badge bg-info me-1">Staff xử lý COD</span>
-                        }
-                        @if (o.Status == "Confirmed" && string.IsNullOrEmpty(o.TrackingCode))
-                        {
-                            <span class="badge bg-info me-1">Chờ staff tạo vận đơn</span>
-                        }
-                        @if (o.Status == "AwaitingReceipt")
-                        {
-                            <span class="badge bg-warning text-dark me-1">Chờ user xác nhận</span>
-                        }
-                        <a href="/Admin/Orders/Detail/@o.Id" class="btn btn-sm btn-outline-primary">Chi tiết</a>
+                    <td class="small text-muted">@o.CreatedAt.ToString("dd/MM HH:mm")</td>
+                    <td class="text-end pe-3">
+                        <div class="d-inline-flex align-items-center gap-1">
+                            @if (waitingPayOs)
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis">Chờ webhook</span>
+                            }
+                            @if (canConfirmCod)
+                            {
+                                <span class="badge bg-info-subtle text-info-emphasis">Staff COD</span>
+                            }
+                            @if (o.Status == "Confirmed" && string.IsNullOrEmpty(o.TrackingCode))
+                            {
+                                <span class="badge bg-info-subtle text-info-emphasis">Chờ vận đơn</span>
+                            }
+                            @if (o.Status == "AwaitingReceipt")
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis">Chờ user nhận</span>
+                            }
+                            <a href="/Admin/Orders/Detail/@o.Id" class="btn btn-sm btn-outline-primary">
+                                Chi tiết
+                            </a>
+                        </div>
                     </td>
                 </tr>
             }
             @if (!Model.Orders.Any())
             {
-                <tr><td colspan="9" class="text-center text-muted py-4">Không có đơn hàng nào</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-5">Không có đơn hàng nào phù hợp với bộ lọc</td></tr>
             }
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">Tổng: @Model.Orders.Count đơn hàng</div>
 </div>
 
 @section Scripts {
@@ -171,23 +188,39 @@ const conn = new signalR.HubConnectionBuilder()
 
 conn.on("NewOrder", data => {
     const amt = new Intl.NumberFormat('vi-VN').format(data.totalAmount);
-    showAlert(`🔔 Đơn hàng mới <strong>#${data.id}</strong> — ${amt}đ vừa được đặt!`, 'success');
+    showAlert(`🔔 Đơn hàng mới <strong>#${data.id}</strong> — ${amt}đ vừa được đặt trên hệ thống!`, 'success');
 });
 
 conn.on("ShipmentCreated", data => {
-    showAlert(`📦 Vận đơn <strong>${data.trackingCode}</strong> đơn #${data.orderId} đã tạo thành công!`, 'info');
+    showAlert(`📦 Vận đơn <strong>${data.trackingCode}</strong> của đơn #${data.orderId} đã được tạo!`, 'info');
 });
 
 conn.start()
-    .then(() => document.getElementById("signalr-badge").className = "badge bg-success")
-    .catch(() => document.getElementById("signalr-badge").className = "badge bg-danger");
+    .then(() => {
+        const badge = document.getElementById("signalr-badge");
+        if (badge) {
+            badge.className = "badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-semibold";
+            badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Realtime sẵn sàng';
+        }
+    })
+    .catch(() => {
+        const badge = document.getElementById("signalr-badge");
+        if (badge) {
+            badge.className = "badge bg-secondary-subtle text-secondary border px-3 py-1.5 fw-semibold";
+            badge.innerHTML = '<i class="bi bi-wifi-off me-1"></i>Mất kết nối';
+        }
+    });
 
 function showAlert(msg, type) {
-    document.getElementById("order-alerts").insertAdjacentHTML("afterbegin",
-        `<div class="alert alert-${type} alert-dismissible fade show">
-             ${msg}
-             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-         </div>`);
+    const alerts = document.getElementById("order-alerts");
+    if (alerts) {
+        alerts.insertAdjacentHTML("afterbegin",
+            `<div class="alert alert-${type} alert-dismissible fade show d-flex align-items-center gap-2 mb-3 shadow-sm">
+                 <i class="bi bi-bell-fill fs-5"></i>
+                 <div>${msg}</div>
+                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+             </div>`);
+    }
 }
 </script>
 }

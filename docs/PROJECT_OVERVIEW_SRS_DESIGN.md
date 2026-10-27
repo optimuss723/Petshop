@@ -765,9 +765,6 @@ Smoke test khuyen nghi:
 Tai lieu testcase chi tiet nam o:
 
 - `docs/TEST_CASES.md`
-- `docs/ORDER_PAYMENT_SHIPPING_FLOW.md`
-- `docs/PAYOS_REAL_PAYMENT.md`
-- `docs/ODATA_DEMO.md`
 
 Nhom test can co:
 

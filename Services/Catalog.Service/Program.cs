@@ -22,6 +22,9 @@ builder.Services.AddDbContext<CatalogDbContext>(opt =>
             maxRetryDelay: TimeSpan.FromSeconds(10),
             errorNumbersToAdd: null)));
 
+// ── AUTOMAPPER ────────────────────────────────────────────────
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
 // ── SERVICES ──────────────────────────────────────────────────
 builder.Services.AddScoped<IProductService,  ProductService>();
 builder.Services.AddScoped<IPetService,      PetService>();
@@ -69,7 +72,13 @@ var odataBuilder = new ODataConventionModelBuilder();
 odataBuilder.EntitySet<Product>("Products");
 odataBuilder.EntitySet<Pet>("Pets");
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Media Formatter & Content Negotiation — đáp ứng yêu cầu Accept header
+        options.RespectBrowserAcceptHeader = true;
+        options.ReturnHttpNotAcceptable = true;
+    })
+    .AddXmlSerializerFormatters()          // Thêm XML input/output formatters
     .ConfigureApiBehaviorOptions(opt =>
     {
         opt.SuppressMapClientErrors = false;

@@ -6,7 +6,7 @@ public class AuthMiddleware
 
     private static readonly string[] _publicPaths =
         ["/Auth/Login", "/Auth/Register", "/", "/Index",
-         "/Products/Index", "/Pets/Index"];
+         "/Cart", "/Products/Index", "/Pets/Index"];
 
     // Prefix → roles được phép truy cập
     private static readonly Dictionary<string, string[]> _roleRequired = new()

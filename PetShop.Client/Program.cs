@@ -30,6 +30,8 @@ TaskScheduler.UnobservedTaskException += (_, e) =>
 };
 
 builder.Services.AddRazorPages();
+builder.Services.AddSingleton<System.Text.Encodings.Web.HtmlEncoder>(
+    System.Text.Encodings.Web.HtmlEncoder.Create(System.Text.Unicode.UnicodeRanges.All));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, ".keys")))

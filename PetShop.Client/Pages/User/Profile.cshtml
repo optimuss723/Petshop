@@ -1,58 +1,82 @@
 @page
 @model PetShop.Client.Pages.User.ProfileModel
-@{ ViewData["Title"] = "Hồ sơ cá nhân"; }
+@{ ViewData["Title"] = "Hồ sơ & Danh sách yêu thích"; }
+
+<div class="mb-4">
+    <span class="ps-kicker">Cài đặt tài khoản</span>
+    <h3 class="fw-bold mb-0">Hồ sơ cá nhân & Danh sách yêu thích</h3>
+</div>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
-    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show">
-        @Model.Message <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm">
+        <i class="bi @(Model.IsSuccess ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-danger") fs-5"></i>
+        <div>@Model.Message</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
     </div>
 }
 
-<div class="row g-4">
+<div class="row g-4 mb-5">
     <!-- Cập nhật thông tin -->
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">👤 Thông tin cá nhân</div>
-            <div class="card-body">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-person-gear text-primary me-2"></i>Thông tin tài khoản</h6>
+            </div>
+            <div class="card-body p-3 p-xl-4">
                 <form method="post" asp-page-handler="UpdateProfile">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Họ tên</label>
-                        <input asp-for="FullName" class="form-control" required/>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Họ và tên</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-person"></i></span>
+                            <input asp-for="FullName" class="form-control border-start-0 ps-0" required/>
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Số điện thoại</label>
-                        <input asp-for="Phone" class="form-control" type="tel"/>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Số điện thoại</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-telephone"></i></span>
+                            <input asp-for="Phone" class="form-control border-start-0 ps-0" type="tel"/>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Địa chỉ giao hàng mặc định</label>
-                        <textarea asp-for="Address" class="form-control" rows="2" placeholder="123 Đường ABC, Quận 1, TP.HCM"></textarea>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Địa chỉ nhận hàng mặc định</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-geo-alt"></i></span>
+                            <textarea asp-for="Address" class="form-control border-start-0 ps-0" rows="3" placeholder="Số nhà, đường, phường/xã, quận/huyện..."></textarea>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">💾 Lưu thay đổi</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-floppy me-1"></i>Lưu thay đổi hồ sơ
+                    </button>
                 </form>
             </div>
         </div>
     </div>
 
     <!-- Đổi mật khẩu -->
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header fw-semibold">🔐 Đổi mật khẩu</div>
-            <div class="card-body">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-shield-lock text-warning me-2"></i>Bảo mật & Đổi mật khẩu</h6>
+            </div>
+            <div class="card-body p-3 p-xl-4">
                 <form method="post" asp-page-handler="ChangePassword">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Mật khẩu hiện tại</label>
-                        <input asp-for="CurrentPassword" type="password" class="form-control" required/>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Mật khẩu hiện tại</label>
+                        <input asp-for="CurrentPassword" type="password" class="form-control" placeholder="••••••••" required/>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Mật khẩu mới</label>
-                        <input asp-for="NewPassword" type="password" class="form-control" required minlength="6"/>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Mật khẩu mới</label>
+                        <input asp-for="NewPassword" type="password" class="form-control" placeholder="Tối thiểu 6 ký tự" required minlength="6"/>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Xác nhận mật khẩu mới</label>
-                        <input asp-for="ConfirmPassword" type="password" class="form-control" required minlength="6"/>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Xác nhận mật khẩu mới</label>
+                        <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Nhập lại mật khẩu mới" required minlength="6"/>
                     </div>
-                    <button type="submit" class="btn btn-warning w-100">🔑 Đổi mật khẩu</button>
+                    <button type="submit" class="btn btn-warning text-dark fw-bold w-100">
+                        <i class="bi bi-key me-1"></i>Cập nhật mật khẩu mới
+                    </button>
                 </form>
             </div>
         </div>
@@ -61,13 +85,18 @@
     <!-- Wishlist (#15) -->
     <div class="col-12">
         <div class="card shadow-sm">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">❤️ Danh sách yêu thích</span>
-                <button class="btn btn-sm btn-outline-danger" onclick="clearWishlist()">Xóa tất cả</button>
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-heart-fill text-danger me-2"></i>Danh sách yêu thích đã lưu</h6>
+                <button class="btn btn-sm btn-outline-danger" onclick="clearWishlist()">
+                    <i class="bi bi-trash3 me-1"></i>Xóa toàn bộ
+                </button>
             </div>
-            <div class="card-body">
+            <div class="card-body p-3 p-xl-4">
                 <div id="wishlistContainer" class="row g-3">
-                    <div class="text-center text-muted py-3" id="wishEmpty">Chưa có sản phẩm yêu thích</div>
+                    <div class="text-center text-muted py-4 col-12" id="wishEmpty">
+                        <i class="bi bi-heartbreak fs-1 d-block mb-2 opacity-50"></i>
+                        Bạn chưa lưu sản phẩm hay thú cưng nào vào danh sách yêu thích.
+                    </div>
                 </div>
             </div>
         </div>
@@ -84,26 +113,36 @@ function renderWishlist() {
     const container = document.getElementById('wishlistContainer');
     const empty     = document.getElementById('wishEmpty');
 
-    if (list.length === 0) { empty.style.display='block'; return; }
-    empty.style.display = 'none';
+    if (!container) return;
 
-    container.innerHTML = '<div class="text-center text-muted py-3" id="wishEmpty" style="display:none">Chưa có sản phẩm yêu thích</div>';
+    if (list.length === 0) {
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    container.innerHTML = '<div class="text-center text-muted py-4 col-12" id="wishEmpty" style="display:none"><i class="bi bi-heartbreak fs-1 d-block mb-2 opacity-50"></i>Bạn chưa lưu sản phẩm hay thú cưng nào vào danh sách yêu thích.</div>';
 
     list.forEach(item => {
         const detailUrl = item.type === 'product' ? `/Products/Detail/${item.id}` : `/Pets/Detail/${item.id}`;
         const emoji     = { Dog:'🐕',Cat:'🐈',Bird:'🐦',Fish:'🐟',Food:'🍖',Accessory:'🎀',Medicine:'💊',Toy:'🎾' }[item.category] || '📦';
         const col = document.createElement('div');
-        col.className = 'col-6 col-md-3';
+        col.className = 'col-6 col-md-4 col-xl-3';
         col.innerHTML = `
-            <div class="card h-100 shadow-sm">
-                <div class="card-body text-center">
-                    <div class="fs-1">${emoji}</div>
-                    <div class="fw-semibold text-truncate">${item.name}</div>
-                    <div class="text-primary fw-bold">${Number(item.price).toLocaleString('vi-VN')}đ</div>
+            <div class="ps-catalog-card h-100">
+                <div class="ps-catalog-card__media" style="height:140px;">
+                    <span class="ps-catalog-card__fallback fs-1">${emoji}</span>
                 </div>
-                <div class="card-footer bg-transparent d-flex gap-1">
-                    <a href="${detailUrl}" class="btn btn-sm btn-outline-primary flex-grow-1">Xem</a>
-                    <button class="btn btn-sm btn-outline-danger" onclick="removeWish('${item.type}',${item.id})">🗑️</button>
+                <div class="ps-catalog-card__body p-3">
+                    <span class="ps-catalog-card__tag mb-1 align-self-start">${item.category || item.type}</span>
+                    <h6 class="ps-catalog-card__title text-truncate mb-1">${item.name}</h6>
+                    <div class="ps-catalog-card__price mt-auto">${Number(item.price).toLocaleString('vi-VN')}đ</div>
+                </div>
+                <div class="ps-catalog-card__footer p-3 pt-0 gap-2">
+                    <a href="${detailUrl}" class="btn btn-sm btn-outline-primary flex-grow-1">Chi tiết</a>
+                    <button class="btn btn-sm btn-outline-danger btn-icon" onclick="removeWish('${item.type}',${item.id})" title="Bỏ thích">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
             </div>`;
         container.appendChild(col);
@@ -111,13 +150,13 @@ function renderWishlist() {
 }
 
 function removeWish(type, id) {
-    const list = getWishlist().filter(x => !(x.type===type && x.id===id));
+    const list = getWishlist().filter(x => !(x.type === type && x.id === id));
     saveWishlist(list);
     renderWishlist();
 }
 
 function clearWishlist() {
-    if (!confirm('Xóa toàn bộ danh sách yêu thích?')) return;
+    if (!confirm('Bạn có chắc muốn xóa toàn bộ danh sách yêu thích?')) return;
     localStorage.removeItem('petshop_wishlist');
     renderWishlist();
 }

@@ -1,100 +1,113 @@
 @page
 @model PetShop.Client.Pages.Admin.Users.IndexModel
-@{ ViewData["Title"] = "Quản lý Users"; }
+@{ ViewData["Title"] = "Quản lý Người dùng"; }
 
-@if (!string.IsNullOrEmpty(Model.Message))
-{
-    <div class="alert alert-info alert-dismissible fade show">
-        @Model.Message <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-}
-
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="ps-backoffice-heading">
     <div>
-        <h4 class="fw-bold mb-1">👤 Quản lý Người dùng</h4>
-        <p class="text-muted mb-0">Tổng: @Model.Users.Count tài khoản</p>
+        <span class="ps-kicker">Phân quyền tài khoản</span>
+        <h1>Quản lý Người dùng</h1>
+        <p>Danh sách thành viên, nhân viên phụ trách và quản trị viên trong hệ thống PetShop.</p>
     </div>
-    <div class="d-flex gap-2">
-        <span class="badge bg-success fs-6">@Model.Users.Count(u => u.IsActive) Hoạt động</span>
-        <span class="badge bg-danger fs-6">@Model.Users.Count(u => !u.IsActive) Bị khóa</span>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fw-semibold">
+            <i class="bi bi-person-check me-1"></i>@Model.Users.Count(u => u.IsActive) Hoạt động
+        </span>
+        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fw-semibold">
+            <i class="bi bi-person-x me-1"></i>@Model.Users.Count(u => !u.IsActive) Đã khóa
+        </span>
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Tên</th>
-                        <th>Email</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th>Ngày tạo</th>
-                        <th class="text-center">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var u in Model.Users)
-                {
-                    <tr class="@(!u.IsActive ? "table-secondary" : "")">
-                        <td class="text-muted">#@u.Id</td>
-                        <td>
-                            <div class="fw-semibold">@u.FullName</div>
-                            <div class="text-muted small">@u.Phone</div>
-                        </td>
-                        <td>@u.Email</td>
-                        <td>
-                            @{
-                                var (badgeClass, icon) = u.Role switch
-                                {
-                                    "Admin"    => ("bg-danger",  "🛡️"),
-                                    "Staff"   => ("bg-warning text-dark", "🔧"),
-                                    _          => ("bg-primary", "👤")
-                                };
-                            }
-                            <span class="badge @badgeClass">@icon @u.Role</span>
-                        </td>
-                        <td>
-                            @if (u.IsActive)
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm">
+        <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+        <div>@Model.Message</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="ps-table-wrap mb-5">
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-white">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-people text-primary me-2"></i>Danh sách tài khoản</h6>
+        <span class="text-muted small">Tổng: <strong>@Model.Users.Count</strong> tài khoản</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-3" style="width:70px">ID</th>
+                    <th>Họ và tên</th>
+                    <th>Email liên hệ</th>
+                    <th>Vai trò</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày đăng ký</th>
+                    <th class="text-center pe-3" style="width:120px">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var u in Model.Users)
+            {
+                <tr class="@(!u.IsActive ? "table-light text-muted" : "")">
+                    <td class="ps-3 text-muted fw-bold">#@u.Id</td>
+                    <td>
+                        <div class="fw-semibold text-dark">@u.FullName</div>
+                        <div class="text-muted small"><i class="bi bi-telephone me-1"></i>@u.Phone</div>
+                    </td>
+                    <td><span class="font-monospace small">@u.Email</span></td>
+                    <td>
+                        @{
+                            var (badgeClass, icon) = u.Role switch
                             {
-                                <span class="badge bg-success">✅ Hoạt động</span>
+                                "Admin"    => ("bg-danger-subtle text-danger border border-danger-subtle",  "🛡️"),
+                                "Staff"   => ("bg-warning-subtle text-warning-emphasis border border-warning-subtle", "🔧"),
+                                _          => ("bg-primary-subtle text-primary border border-primary-subtle", "👤")
+                            };
+                        }
+                        <span class="badge @badgeClass fw-semibold">@icon @u.Role</span>
+                    </td>
+                    <td>
+                        @if (u.IsActive)
+                        {
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Hoạt động</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger-subtle text-danger"><i class="bi bi-lock me-1"></i>Đã khóa</span>
+                        }
+                    </td>
+                    <td class="text-muted small">@u.CreatedAt.ToString("dd/MM/yyyy")</td>
+                    <td class="text-center pe-3">
+                        @if (u.Role != "Admin")
+                        {
+                            if (u.IsActive)
+                            {
+                                <form method="post" asp-page-handler="Deactivate" class="d-inline"
+                                      onsubmit="return confirm('Vô hiệu hoá tài khoản @u.FullName?')">
+                                    <input type="hidden" name="id" value="@u.Id"/>
+                                    <button class="btn btn-outline-danger btn-sm py-1 px-2.5" title="Khóa tài khoản">
+                                        <i class="bi bi-lock me-1"></i>Khóa
+                                    </button>
+                                </form>
                             }
                             else
                             {
-                                <span class="badge bg-danger">🔒 Bị khóa</span>
+                                <form method="post" asp-page-handler="Activate" class="d-inline">
+                                    <input type="hidden" name="id" value="@u.Id"/>
+                                    <button class="btn btn-outline-success btn-sm py-1 px-2.5" title="Mở khóa tài khoản">
+                                        <i class="bi bi-unlock me-1"></i>Mở
+                                    </button>
+                                </form>
                             }
-                        </td>
-                        <td class="text-muted small">@u.CreatedAt.ToString("dd/MM/yyyy")</td>
-                        <td class="text-center">
-                            @if (u.Role != "Admin")
-                            {
-                                if (u.IsActive)
-                                {
-                                    <form method="post" asp-page-handler="Deactivate" class="d-inline"
-                                          onsubmit="return confirm('Vô hiệu hoá tài khoản @u.FullName?')">
-                                        <input type="hidden" name="id" value="@u.Id"/>
-                                        <button class="btn btn-outline-danger btn-sm">🔒 Khóa</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <form method="post" asp-page-handler="Activate" class="d-inline">
-                                        <input type="hidden" name="id" value="@u.Id"/>
-                                        <button class="btn btn-outline-success btn-sm">🔓 Mở khóa</button>
-                                    </form>
-                                }
-                            }
-                            else
-                            {
-                                <span class="text-muted small">Protected</span>
-                            }
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-muted border">Quản trị viên</span>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
     </div>
 </div>

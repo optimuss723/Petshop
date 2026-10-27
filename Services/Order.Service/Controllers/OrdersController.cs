@@ -78,7 +78,7 @@ public class OrdersController : ControllerBase
 
     /// <summary>Staff cập nhật trạng thái đơn hàng</summary>
     [HttpPatch("{id:int}/status")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusRequest req)
         => Ok(await _svc.UpdateStatusAsync(id, req.Status, UserId, UserName));
 
@@ -86,7 +86,7 @@ public class OrdersController : ControllerBase
     /// Staff tạo vận đơn — gọi hãng ship ngoài (GHN Mock).
     /// </summary>
     [HttpPost("{id:int}/ship")]
-    [Authorize(Roles = "Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> CreateShipment(int id, [FromBody] CreateShipmentRequest req)
         => Ok(await _svc.CreateShipmentAsync(id, UserId, UserName, req));
 

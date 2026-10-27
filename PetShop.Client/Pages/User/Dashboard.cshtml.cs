@@ -16,8 +16,13 @@ public class ProfileInput
 public class DashboardModel : PageModel
 {
     private readonly IOrderClientService _orderSvc;
+    private readonly IProductClientService _productSvc;
+    private readonly IPetClientService _petSvc;
 
-    public List<OrderResponse> Orders              { get; set; } = [];
+    public List<OrderResponse> Orders                  { get; set; } = [];
+    public Dictionary<int, ProductResponse> ProductMap { get; set; } = new();
+    public Dictionary<int, PetResponse> PetMap         { get; set; } = new();
+
     public string  FullName          => HttpContext.Session.GetString("UserName") ?? "Khách";
     public string? ProfileMessage    { get; set; }
     public string? OrderSuccessMessage { get; set; }  // Thông báo đặt hàng thành công
@@ -31,11 +36,19 @@ public class DashboardModel : PageModel
     public int     DeliveredCount => Orders.Count(o => o.Status == "Delivered");
     public decimal TotalSpent     => Orders.Where(o => o.Status == "Delivered").Sum(o => o.TotalAmount);
 
-    public DashboardModel(IOrderClientService orderSvc) => _orderSvc = orderSvc;
+    public DashboardModel(
+        IOrderClientService orderSvc,
+        IProductClientService productSvc,
+        IPetClientService petSvc)
+    {
+        _orderSvc = orderSvc;
+        _productSvc = productSvc;
+        _petSvc = petSvc;
+    }
 
     public async Task OnGetAsync()
     {
-        ProfileMessage     = TempData["ProfileMessage"]?.ToString();
+        ProfileMessage      = TempData["ProfileMessage"]?.ToString();
         OrderSuccessMessage = TempData["OrderSuccess"]?.ToString();
         ShouldClearCart     = TempData["ClearCart"]?.ToString() == "true";
 
@@ -44,9 +57,64 @@ public class DashboardModel : PageModel
         ProfileInput.Phone    = HttpContext.Session.GetString("UserPhone") ?? "";
         ProfileInput.Address  = HttpContext.Session.GetString("UserAddress");
 
-        var result = await _orderSvc.GetMyOrdersAsync();
-        Orders = result?.Data?.OrderByDescending(o => o.CreatedAt).ToList() ?? [];
+        var ordersTask = _orderSvc.GetMyOrdersAsync();
+        var prodsTask  = _productSvc.GetAllAsync();
+        var petsTask   = _petSvc.GetAllAsync();
+
+        await Task.WhenAll(ordersTask, prodsTask, petsTask);
+
+        var ordersRes = await ordersTask;
+        var prodsRes  = await prodsTask;
+        var petsRes   = await petsTask;
+
+        Orders = ordersRes?.Data?.OrderByDescending(o => o.CreatedAt).ToList() ?? [];
+        if (prodsRes?.Data != null)
+        {
+            ProductMap = prodsRes.Data.GroupBy(p => p.Id).ToDictionary(g => g.Key, g => g.First());
+        }
+        if (petsRes?.Data != null)
+        {
+            PetMap = petsRes.Data.GroupBy(p => p.Id).ToDictionary(g => g.Key, g => g.First());
+        }
     }
+
+    public string GetItemImageUrl(OrderItemResponse item)
+    {
+        if (item.ProductId.HasValue && ProductMap.TryGetValue(item.ProductId.Value, out var prod) && !string.IsNullOrWhiteSpace(prod.ImageUrl))
+            return prod.ImageUrl;
+        if (item.PetId.HasValue && PetMap.TryGetValue(item.PetId.Value, out var pet) && !string.IsNullOrWhiteSpace(pet.ImageUrl))
+            return pet.ImageUrl;
+        return item.ProductId.HasValue
+            ? "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=150&q=80"
+            : "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80";
+    }
+
+    public string GetItemCategory(OrderItemResponse item)
+    {
+        string raw = "";
+        if (item.ProductId.HasValue && ProductMap.TryGetValue(item.ProductId.Value, out var prod) && !string.IsNullOrWhiteSpace(prod.Category))
+            raw = prod.Category;
+        else if (item.PetId.HasValue && PetMap.TryGetValue(item.PetId.Value, out var pet))
+            raw = !string.IsNullOrWhiteSpace(pet.Breed) ? pet.Breed : (!string.IsNullOrWhiteSpace(pet.Category) ? pet.Category : "Thú cưng");
+        else
+            raw = item.ProductId.HasValue ? "Phụ kiện" : "Thú cưng";
+
+        return raw switch
+        {
+            "Food"      => "Thức ăn & Dinh dưỡng",
+            "Toy"       => "Đồ chơi & Phụ kiện",
+            "Accessory" => "Chuồng & Phụ kiện",
+            "Medicine"  => "Thuốc & Y tế",
+            "Care"      => "Vệ sinh & Chăm sóc",
+            "Dog"       => "Chó cảnh thuần chủng",
+            "Cat"       => "Mèo cảnh thuần chủng",
+            "Bird"      => "Chim cảnh",
+            "Fish"      => "Cá cảnh thủy sinh",
+            _           => raw
+        };
+    }
+
+
 
     public async Task<IActionResult> OnPostUpdateProfileAsync()
     {

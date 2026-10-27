@@ -2,69 +2,88 @@
 @model PetShop.Client.Pages.Staff.Products.EditModel
 @{ ViewData["Title"] = Model.IsEdit ? "Sửa sản phẩm" : "Thêm sản phẩm"; }
 
-<div class="d-flex align-items-center mb-4 gap-3">
-    <a href="/Staff/Products" class="btn btn-outline-secondary btn-sm">← Quay lại</a>
-    <h5 class="mb-0 fw-semibold">@(Model.IsEdit ? "✏️ Sửa sản phẩm" : "➕ Thêm sản phẩm mới")</h5>
+<div class="ps-backoffice-heading">
+    <div>
+        <span class="ps-kicker">Quản lý kho hàng</span>
+        <h1>@(Model.IsEdit ? $"Chỉnh sửa sản phẩm #{Model.Input.Id}" : "Thêm sản phẩm mới")</h1>
+        <p>@(Model.IsEdit ? "Cập nhật giá bán, số lượng tồn kho và ảnh sản phẩm." : "Nhập đầy đủ thông tin để niêm yết sản phẩm mới.")</p>
+    </div>
+    <div>
+        <a href="/Staff/Products" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Danh sách sản phẩm
+        </a>
+    </div>
 </div>
 
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4 shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+        <div>@Model.ErrorMessage</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
 }
 
 <form method="post" enctype="multipart/form-data">
     <input type="hidden" asp-for="Input.Id"/>
     <input type="hidden" asp-for="Input.ImageUrl" id="hiddenImageUrl"/>
 
-    <div class="row g-4">
+    <div class="row g-4 mb-5">
         @* Cột trái: thông tin sản phẩm *@
         <div class="col-lg-7">
-            <div class="card h-100">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i>Thông tin cơ bản</h6>
+                </div>
                 <div class="card-body p-4">
-                    <h6 class="fw-semibold mb-3 text-muted small text-uppercase">Thông tin sản phẩm</h6>
-
                     <div class="mb-3">
-                        <label class="form-label fw-medium">Tên sản phẩm <span class="text-danger">*</span></label>
-                        <input asp-for="Input.Name" class="form-control" placeholder="VD: Thức ăn Royal Canin"/>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Tên sản phẩm <span class="text-danger">*</span></label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="VD: Thức ăn Royal Canin Mini Adult 2kg"/>
                         <span asp-validation-for="Input.Name" class="text-danger small"></span>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label fw-medium">Mô tả <span class="text-danger">*</span></label>
-                        <textarea asp-for="Input.Description" class="form-control" rows="4"
-                                  placeholder="Mô tả chi tiết sản phẩm..."></textarea>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Mô tả sản phẩm <span class="text-danger">*</span></label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="5"
+                                  placeholder="Mô tả công dụng, thành phần, cách dùng..."></textarea>
                         <span asp-validation-for="Input.Description" class="text-danger small"></span>
                     </div>
+
                     <div class="row g-3 mb-3">
                         <div class="col-6">
-                            <label class="form-label fw-medium">Giá (VNĐ) <span class="text-danger">*</span></label>
-                            <input asp-for="Input.Price" class="form-control" type="number" min="0" placeholder="350000"/>
+                            <label class="form-label small fw-semibold text-muted text-uppercase">Giá bán (VNĐ) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="Input.Price" class="form-control" type="number" min="0" placeholder="350000"/>
+                                <span class="input-group-text bg-light text-muted">₫</span>
+                            </div>
                             <span asp-validation-for="Input.Price" class="text-danger small"></span>
                         </div>
                         <div class="col-6">
-                            <label class="form-label fw-medium">Tồn kho <span class="text-danger">*</span></label>
+                            <label class="form-label small fw-semibold text-muted text-uppercase">Số lượng tồn kho <span class="text-danger">*</span></label>
                             <input asp-for="Input.Stock" class="form-control" type="number" min="0" placeholder="100"/>
                             <span asp-validation-for="Input.Stock" class="text-danger small"></span>
                         </div>
                     </div>
+
                     <div class="mb-4">
-                        <label class="form-label fw-medium">Danh mục <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold text-muted text-uppercase">Danh mục phân loại <span class="text-danger">*</span></label>
                         <select asp-for="Input.Category" class="form-select">
                             <option value="">-- Chọn danh mục --</option>
-                            <option value="Food">🍖 Thức ăn</option>
-                            <option value="Accessory">🎀 Phụ kiện</option>
-                            <option value="Medicine">💊 Thuốc</option>
-                            <option value="Toy">🎾 Đồ chơi</option>
-                            <option value="Grooming">✂️ Grooming</option>
-                            <option value="Other">📦 Khác</option>
+                            <option value="Food">🍖 Thức ăn cho thú cưng</option>
+                            <option value="Accessory">🎀 Phụ kiện, chuồng nệm</option>
+                            <option value="Medicine">💊 Dược phẩm & Vitamin</option>
+                            <option value="Toy">🎾 Đồ chơi thú cưng</option>
+                            <option value="Grooming">✂️ Dụng cụ vệ sinh & spa</option>
+                            <option value="Other">📦 Danh mục khác</option>
                         </select>
                         <span asp-validation-for="Input.Category" class="text-danger small"></span>
                     </div>
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 pt-2">
                         <button type="submit" class="btn btn-primary px-4">
-                            @(Model.IsEdit ? "💾 Lưu thay đổi" : "➕ Tạo sản phẩm")
+                            <i class="bi bi-floppy me-1"></i>@(Model.IsEdit ? "Lưu thay đổi" : "Tạo sản phẩm")
                         </button>
-                        <a href="/Staff/Products" class="btn btn-outline-secondary">Huỷ</a>
+                        <a href="/Staff/Products" class="btn btn-outline-secondary">Huỷ bỏ</a>
                     </div>
                 </div>
             </div>
@@ -72,57 +91,55 @@
 
         @* Cột phải: upload ảnh *@
         <div class="col-lg-5">
-            <div class="card h-100">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-image text-primary me-2"></i>Ảnh minh hoạ sản phẩm</h6>
+                </div>
                 <div class="card-body p-4 d-flex flex-column">
-                    <h6 class="fw-semibold mb-3 text-muted small text-uppercase">Ảnh sản phẩm</h6>
-
                     <div id="dropZone"
                          onclick="document.getElementById('fileInput').click()"
-                         class="border rounded-3 d-flex flex-column align-items-center justify-content-center text-center p-3 mb-3"
-                         style="min-height:280px; border-style:dashed !important; border-color:#dee2e6; background:#f8f9fa; cursor:pointer; transition:all .2s;">
+                         class="ps-upload-dropzone mb-3 flex-grow-1 d-flex flex-column align-items-center justify-content-center text-center p-4">
 
                         @if (!string.IsNullOrEmpty(Model.Input.ImageUrl))
                         {
                             <img id="imgPreview" src="@Model.Input.ImageUrl" alt="preview"
                                  class="rounded-3 mb-2"
-                                 style="max-width:100%; max-height:240px; object-fit:contain;"/>
-                            <p class="text-muted small mb-0">Nhấn để đổi ảnh</p>
+                                 style="max-width:100%; max-height:220px; object-fit:contain;"/>
+                            <p class="text-muted small mb-0"><i class="bi bi-arrow-repeat me-1"></i>Nhấn hoặc kéo ảnh mới để thay đổi</p>
                         }
                         else
                         {
                             <div id="dropPlaceholder">
-                                <div style="font-size:3rem;" class="mb-2">🖼️</div>
-                                <p class="fw-medium mb-1">Kéo thả ảnh vào đây</p>
-                                <p class="text-muted small mb-2">hoặc nhấn để chọn file</p>
-                                <span class="badge bg-secondary">JPG · PNG · WEBP · GIF</span>
-                                <p class="text-muted small mt-2 mb-0">Tối đa 5MB</p>
+                                <i class="bi bi-cloud-arrow-up text-primary fs-1 d-block mb-2"></i>
+                                <p class="fw-semibold mb-1">Kéo thả ảnh vào đây</p>
+                                <p class="text-muted small mb-2">hoặc nhấn để chọn tệp từ máy tính</p>
+                                <span class="badge bg-secondary-subtle text-secondary border">JPG · PNG · WEBP · Tối đa 5MB</span>
                             </div>
                             <img id="imgPreview" src="" alt="preview"
                                  class="rounded-3 mb-2 d-none"
-                                 style="max-width:100%; max-height:240px; object-fit:contain;"/>
+                                 style="max-width:100%; max-height:220px; object-fit:contain;"/>
                         }
                     </div>
 
                     <input asp-for="UploadedImage" id="fileInput" type="file" accept="image/*" class="d-none"/>
 
-                    <label class="form-label small fw-medium text-muted mb-1">Hoặc nhập URL ảnh</label>
-                    <input id="urlInput" class="form-control form-control-sm"
-                           placeholder="https://example.com/image.jpg"
-                           value="@Model.Input.ImageUrl"
-                           oninput="onUrlInput(this.value)"/>
+                    <label class="form-label small fw-semibold text-muted text-uppercase mb-1">Hoặc đường dẫn URL trực tiếp</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-link-45deg"></i></span>
+                        <input id="urlInput" class="form-control border-start-0 ps-0"
+                               placeholder="https://example.com/image.jpg"
+                               value="@Model.Input.ImageUrl"
+                               oninput="onUrlInput(this.value)"/>
+                    </div>
 
-                    <p id="fileName" class="text-success small mt-2 mb-0"></p>
+                    <p id="fileName" class="text-success small fw-semibold mt-2 mb-0"></p>
                 </div>
             </div>
         </div>
     </div>
 </form>
 
-<style>
-    #dropZone:hover  { border-color:#0d6efd !important; background:#eef3ff !important; }
-    #dropZone.drag-over { border-color:#0d6efd !important; background:#ddeaff !important; transform:scale(1.01); }
-</style>
-
+@section Scripts {
 <script>
     const dropZone    = document.getElementById('dropZone');
     const fileInput   = document.getElementById('fileInput');
@@ -173,3 +190,4 @@
         }
     }
 </script>
+}
