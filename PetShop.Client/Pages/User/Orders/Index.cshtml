@@ -309,7 +309,7 @@ else
 // ── SignalR — realtime order status updates ───────────────────────
 const token  = '@HttpContext.Session.GetString("AccessToken")';
 const userId = '@HttpContext.Session.GetString("UserId")';
-const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders")';
+const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:50142/hubs/orders")';
 
 if (token) {
     const conn = new signalR.HubConnectionBuilder()

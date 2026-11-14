@@ -130,10 +130,39 @@ public class ApiClient : IApiClient
         {
             using var doc = JsonDocument.Parse(body);
             var root = doc.RootElement;
-            foreach (var name in new[] { "message", "Message", "title", "error" })
+
+            // 1. Kiểm tra validation errors (ProblemDetails: { "errors": { "Field": ["Error"] } })
+            if (root.TryGetProperty("errors", out var errorsProp) && errorsProp.ValueKind == JsonValueKind.Object)
+            {
+                var errList = new List<string>();
+                foreach (var prop in errorsProp.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var errItem in prop.Value.EnumerateArray())
+                        {
+                            if (errItem.ValueKind == JsonValueKind.String)
+                                errList.Add(errItem.GetString()!);
+                        }
+                    }
+                    else if (prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        errList.Add(prop.Value.GetString()!);
+                    }
+                }
+                if (errList.Count > 0)
+                    return string.Join(" ", errList);
+            }
+
+            // 2. Kiểm tra message / error thông thường
+            foreach (var name in new[] { "message", "Message", "error", "title" })
             {
                 if (root.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.String)
-                    return prop.GetString();
+                {
+                    var str = prop.GetString();
+                    if (!string.IsNullOrWhiteSpace(str) && str != "One or more validation errors occurred.")
+                        return str;
+                }
             }
         }
         catch (JsonException)
@@ -172,8 +201,8 @@ public class AuthClientService : IAuthClientService
 public interface IProductClientService
 {
     Task<ApiResponse<List<ProductResponse>>?>        GetAllAsync();
-    Task<ApiResponse<PagedResponse<ProductResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 9);
-    Task<ODataListResponse<ProductResponse>?>        GetODataAsync(string? search = null, string? category = null, string? orderBy = null, int skip = 0, int top = 10);
+    Task<ApiResponse<PagedResponse<ProductResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 8);
+    Task<ODataListResponse<ProductResponse>?>        GetODataAsync(string? search = null, string? category = null, string? orderBy = null, int skip = 0, int top = 8);
     Task<ApiResponse<ProductResponse>?>              GetByIdAsync(int id);
     Task<ApiResponse<ProductResponse>?>              CreateAsync(ProductRequest req);
     Task<ApiResponse<ProductResponse>?>              UpdateAsync(int id, ProductRequest req);
@@ -188,7 +217,7 @@ public class ProductClientService : IProductClientService
     public Task<ApiResponse<List<ProductResponse>>?> GetAllAsync()
         => _api.GetAsync<ApiResponse<List<ProductResponse>>>("api/products");
 
-    public Task<ApiResponse<PagedResponse<ProductResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 9)
+    public Task<ApiResponse<PagedResponse<ProductResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 8)
     {
         var qs = new List<string>();
         if (!string.IsNullOrEmpty(search))    qs.Add($"search={Uri.EscapeDataString(search)}");
@@ -205,7 +234,7 @@ public class ProductClientService : IProductClientService
         string? category = null,
         string? orderBy = null,
         int skip = 0,
-        int top = 10)
+        int top = 8)
     {
         var qs = new List<string>
         {
@@ -247,7 +276,7 @@ public class ProductClientService : IProductClientService
 public interface IPetClientService
 {
     Task<ApiResponse<List<PetResponse>>?>        GetAllAsync();
-    Task<ApiResponse<PagedResponse<PetResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, string? status = "Available", int page = 1, int pageSize = 9);
+    Task<ApiResponse<PagedResponse<PetResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, string? status = "Available", int page = 1, int pageSize = 8);
     Task<ApiResponse<PetResponse>?>              GetByIdAsync(int id);
     Task<ApiResponse<PetResponse>?>              CreateAsync(PetRequest req);
     Task<ApiResponse<PetResponse>?>              UpdateAsync(int id, PetRequest req);
@@ -262,7 +291,7 @@ public class PetClientService : IPetClientService
     public Task<ApiResponse<List<PetResponse>>?> GetAllAsync()
         => _api.GetAsync<ApiResponse<List<PetResponse>>>("api/pets");
 
-    public Task<ApiResponse<PagedResponse<PetResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, string? status = "Available", int page = 1, int pageSize = 9)
+    public Task<ApiResponse<PagedResponse<PetResponse>>?> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, string? status = "Available", int page = 1, int pageSize = 8)
     {
         var qs = new List<string>();
         if (!string.IsNullOrEmpty(search))   qs.Add($"search={Uri.EscapeDataString(search)}");

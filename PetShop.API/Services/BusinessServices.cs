@@ -16,6 +16,7 @@ namespace PetShop.API.Services;
 public interface IProductService
 {
     Task<ApiResponse<List<ProductResponse>>> GetAllAsync();
+    Task<ApiResponse<PagedResponse<ProductResponse>>> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, int page = 1, int pageSize = 8);
     Task<ApiResponse<ProductResponse>> GetByIdAsync(int id);
     Task<ApiResponse<ProductResponse>> CreateAsync(ProductRequest request);
     Task<ApiResponse<ProductResponse>> UpdateAsync(int id, ProductRequest request);
@@ -33,6 +34,45 @@ public class ProductService : IProductService
     {
         var items = await _uow.Products.FindAsync(p => p.IsActive);
         return new ApiResponse<List<ProductResponse>>(true, null, _mapper.Map<List<ProductResponse>>(items));
+    }
+
+    public async Task<ApiResponse<PagedResponse<ProductResponse>>> SearchAsync(
+        string? search = null,
+        string? category = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        int page = 1,
+        int pageSize = 8)
+    {
+        var query = _uow.Products.Query().Where(p => p.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            query = query.Where(p => p.Name.Contains(s) || p.Description.Contains(s));
+        }
+
+        if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<ProductCategory>(category, true, out var catEnum))
+        {
+            query = query.Where(p => p.Category == catEnum);
+        }
+
+        if (minPrice.HasValue) query = query.Where(p => p.Price >= minPrice.Value);
+        if (maxPrice.HasValue) query = query.Where(p => p.Price <= maxPrice.Value);
+
+        var total = await query.CountAsync();
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var items = await query
+            .OrderByDescending(p => p.Id)
+            .Skip((safePage - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToListAsync();
+
+        var dtos = _mapper.Map<List<ProductResponse>>(items);
+        var paged = new PagedResponse<ProductResponse>(dtos, total, safePage, safePageSize);
+        return new ApiResponse<PagedResponse<ProductResponse>>(true, null, paged);
     }
 
     public async Task<ApiResponse<ProductResponse>> GetByIdAsync(int id)
@@ -76,6 +116,7 @@ public class ProductService : IProductService
 public interface IPetService
 {
     Task<ApiResponse<List<PetResponse>>> GetAllAsync();
+    Task<ApiResponse<PagedResponse<PetResponse>>> SearchAsync(string? search = null, string? category = null, decimal? minPrice = null, decimal? maxPrice = null, string? status = null, int page = 1, int pageSize = 8);
     Task<ApiResponse<PetResponse>> GetByIdAsync(int id);
     Task<ApiResponse<PetResponse>> CreateAsync(PetRequest request);
     Task<ApiResponse<PetResponse>> UpdateAsync(int id, PetRequest request);
@@ -93,6 +134,51 @@ public class PetService : IPetService
     {
         var items = await _uow.Pets.GetAllAsync();
         return new ApiResponse<List<PetResponse>>(true, null, _mapper.Map<List<PetResponse>>(items));
+    }
+
+    public async Task<ApiResponse<PagedResponse<PetResponse>>> SearchAsync(
+        string? search = null,
+        string? category = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        string? status = null,
+        int page = 1,
+        int pageSize = 8)
+    {
+        var query = _uow.Pets.Query();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            query = query.Where(p => p.Name.Contains(s) || p.Breed.Contains(s) || p.Description.Contains(s));
+        }
+
+        if (!string.IsNullOrWhiteSpace(category) && Enum.TryParse<PetCategory>(category, true, out var catEnum))
+        {
+            query = query.Where(p => p.Category == catEnum);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<PetStatus>(status, true, out var statusEnum))
+        {
+            query = query.Where(p => p.Status == statusEnum);
+        }
+
+        if (minPrice.HasValue) query = query.Where(p => p.Price >= minPrice.Value);
+        if (maxPrice.HasValue) query = query.Where(p => p.Price <= maxPrice.Value);
+
+        var total = await query.CountAsync();
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var items = await query
+            .OrderByDescending(p => p.Id)
+            .Skip((safePage - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToListAsync();
+
+        var dtos = _mapper.Map<List<PetResponse>>(items);
+        var paged = new PagedResponse<PetResponse>(dtos, total, safePage, safePageSize);
+        return new ApiResponse<PagedResponse<PetResponse>>(true, null, paged);
     }
 
     public async Task<ApiResponse<PetResponse>> GetByIdAsync(int id)
@@ -139,6 +225,7 @@ public interface IOrderService
     Task<ApiResponse<OrderResponse>> CreateAsync(int userId, OrderRequest request);
     Task<ApiResponse<OrderResponse>> UpdateStatusAsync(int id, OrderStatus status, int requestingUserId, string requestingRole);
     Task<ApiResponse<bool>> CancelAsync(int id, int userId);
+    Task<ApiResponse<ShipmentCreatedResponse>> CreateShipmentAsync(int id, string? note);
 }
 
 public class OrderService : IOrderService
@@ -227,81 +314,87 @@ public class OrderService : IOrderService
         }
 
         // ── BƯỚC 2: Atomic transaction — chống race condition ────────
-        // Dù 1000 người cùng click "Đặt hàng" cùng lúc,
-        // ExecuteUpdateAsync chạy lệnh SQL dạng:
-        //   UPDATE Products SET Stock = Stock - @qty
-        //   WHERE Id = @id AND Stock >= @qty
-        // → chỉ 1 người thắng, người còn lại bị rowsAffected = 0
-        await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        try
+        // Dùng CreateExecutionStrategy() để tương thích với SqlServerRetryingExecutionStrategy
+        var strategy = _db.Database.CreateExecutionStrategy();
+        ApiResponse<OrderResponse>? txResult = null;
+
+        await strategy.ExecuteAsync(async () =>
         {
-            // 2a. Trừ stock Product (atomic)
-            foreach (var (productId, name, qty) in preCheckItems)
+            await using var tx = await _db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+            try
             {
-                var rowsAffected = await _db.Products
-                    .Where(p => p.Id == productId && p.Stock >= qty)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(p => p.Stock, p => p.Stock - qty));
-
-                if (rowsAffected == 0)
+                // 2a. Trừ stock Product (atomic)
+                foreach (var (productId, name, qty) in preCheckItems)
                 {
-                    await tx.RollbackAsync();
-                    return new ApiResponse<OrderResponse>(false,
-                        $"Sản phẩm '{name}' vừa hết hàng do người khác đặt trước. " +
-                        $"Vui lòng kiểm tra lại giỏ hàng.", null);
+                    var rowsAffected = await _db.Products
+                        .Where(p => p.Id == productId && p.Stock >= qty)
+                        .ExecuteUpdateAsync(s =>
+                            s.SetProperty(p => p.Stock, p => p.Stock - qty));
+
+                    if (rowsAffected == 0)
+                    {
+                        await tx.RollbackAsync();
+                        txResult = new ApiResponse<OrderResponse>(false,
+                            $"Sản phẩm '{name}' vừa hết hàng do người khác đặt trước. " +
+                            $"Vui lòng kiểm tra lại giỏ hàng.", null);
+                        return;
+                    }
                 }
-            }
 
-            // 2b. Đổi Pet → Sold (atomic, chỉ khi vẫn Available)
-            foreach (var (petId, name) in preCheckPets)
-            {
-                var rowsAffected = await _db.Pets
-                    .Where(p => p.Id == petId && p.Status == PetStatus.Available)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(p => p.Status, PetStatus.Sold));
-
-                if (rowsAffected == 0)
+                // 2b. Đổi Pet → Sold (atomic, chỉ khi vẫn Available)
+                foreach (var (petId, name) in preCheckPets)
                 {
-                    await tx.RollbackAsync();
-                    return new ApiResponse<OrderResponse>(false,
-                        $"Thú cưng '{name}' vừa được người khác đặt mua. " +
-                        $"Vui lòng chọn thú cưng khác.", null);
+                    var rowsAffected = await _db.Pets
+                        .Where(p => p.Id == petId && p.Status == PetStatus.Available)
+                        .ExecuteUpdateAsync(s =>
+                            s.SetProperty(p => p.Status, PetStatus.Sold));
+
+                    if (rowsAffected == 0)
+                    {
+                        await tx.RollbackAsync();
+                        txResult = new ApiResponse<OrderResponse>(false,
+                            $"Thú cưng '{name}' vừa được người khác đặt mua. " +
+                            $"Vui lòng chọn thú cưng khác.", null);
+                        return;
+                    }
                 }
-            }
 
-            // 2c. Tạo đơn hàng
-            var order = new Order
-            {
-                UserId          = userId,
-                ShippingAddress = request.ShippingAddress,
-                Note            = request.Note,
-                Status          = OrderStatus.Pending,
-                Items           = request.Items.Select(i => new OrderItem
+                // 2c. Tạo đơn hàng
+                var order = new Order
                 {
-                    ProductId = i.ProductId,
-                    PetId     = i.PetId,
-                    Quantity  = i.Quantity,
-                    UnitPrice = i.UnitPrice
-                }).ToList()
-            };
-            order.TotalAmount = order.Items.Sum(i => i.Quantity * i.UnitPrice);
+                    UserId          = userId,
+                    ShippingAddress = request.ShippingAddress,
+                    Note            = request.Note,
+                    Status          = OrderStatus.Pending,
+                    Items           = request.Items.Select(i => new OrderItem
+                    {
+                        ProductId = i.ProductId,
+                        PetId     = i.PetId,
+                        Quantity  = i.Quantity,
+                        UnitPrice = i.UnitPrice
+                    }).ToList()
+                };
+                order.TotalAmount = order.Items.Sum(i => i.Quantity * i.UnitPrice);
 
-            _db.Orders.Add(order);
-            await _db.SaveChangesAsync();
+                _db.Orders.Add(order);
+                await _db.SaveChangesAsync();
 
-            await tx.CommitAsync();
+                await tx.CommitAsync();
 
-            await _hub.Clients.Group("Admins")
-                .SendAsync("NewOrder", new { order.Id, order.TotalAmount, CreatedAt = DateTime.UtcNow });
+                await _hub.Clients.Group("Admins")
+                    .SendAsync("NewOrder", new { order.Id, order.TotalAmount, CreatedAt = DateTime.UtcNow });
 
-            var created = await GetByIdAsync(order.Id);
-            return new ApiResponse<OrderResponse>(true, "Đặt hàng thành công.", created.Data);
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+                var created = await GetByIdAsync(order.Id);
+                txResult = new ApiResponse<OrderResponse>(true, "Đặt hàng thành công.", created.Data);
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        });
+
+        return txResult!;
     }
 
     public async Task<ApiResponse<OrderResponse>> UpdateStatusAsync(int id, OrderStatus status, int requestingUserId, string requestingRole)
@@ -319,6 +412,8 @@ public class OrderService : IOrderService
 
         await _hub.Clients.User(order.UserId.ToString())
             .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
+        await _hub.Clients.Group($"User_{order.UserId}")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
 
         return await GetByIdAsync(id);
     }
@@ -335,7 +430,55 @@ public class OrderService : IOrderService
         order.UpdatedAt = DateTime.UtcNow;
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
+
+        await _hub.Clients.User(order.UserId.ToString())
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Cancelled" });
+        await _hub.Clients.Group($"User_{order.UserId}")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Cancelled" });
+        await _hub.Clients.Group("Admins")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Cancelled" });
+
         return new ApiResponse<bool>(true, "Huỷ đơn hàng thành công.", true);
+    }
+
+    public async Task<ApiResponse<ShipmentCreatedResponse>> CreateShipmentAsync(int id, string? note)
+    {
+        var order = await _uow.Orders.GetByIdAsync(id);
+        if (order == null) return new ApiResponse<ShipmentCreatedResponse>(false, "Đơn hàng không tồn tại.", null);
+
+        order.Status = OrderStatus.Shipping;
+        order.UpdatedAt = DateTime.UtcNow;
+
+        var trackingCode = $"GHN{DateTime.UtcNow:yyMMdd}{order.Id:D4}";
+        var provider = "Giao Hàng Nhanh (GHN)";
+        var trackingUrl = $"https://donhang.ghn.vn/?code={trackingCode}";
+
+        var trackingNote = $"[Mã vận đơn: {trackingCode} | {provider}]";
+        if (string.IsNullOrWhiteSpace(order.Note))
+            order.Note = trackingNote;
+        else if (!order.Note.Contains(trackingCode))
+            order.Note = $"{order.Note} - {trackingNote}";
+
+        _uow.Orders.Update(order);
+        await _uow.SaveChangesAsync();
+
+        await _hub.Clients.Group("Admins")
+            .SendAsync("ShipmentCreated", new { orderId = order.Id, trackingCode });
+        await _hub.Clients.Group("Admins")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Shipping" });
+        await _hub.Clients.User(order.UserId.ToString())
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Shipping" });
+        await _hub.Clients.Group($"User_{order.UserId}")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = "Shipping" });
+
+        var response = new ShipmentCreatedResponse(
+            trackingCode,
+            provider,
+            trackingUrl,
+            $"Đã tạo vận đơn {trackingCode} thành công. Đơn hàng #{order.Id} đã chuyển sang Đang giao."
+        );
+
+        return new ApiResponse<ShipmentCreatedResponse>(true, "Tạo vận đơn thành công.", response);
     }
 }
 

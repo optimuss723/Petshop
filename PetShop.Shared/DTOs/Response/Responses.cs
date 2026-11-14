@@ -2,7 +2,10 @@ using PetShop.Shared.Enums;
 
 namespace PetShop.Shared.DTOs.Response;
 
-public record AuthResponse(string Token, string RefreshToken, UserResponse User);
+public record AuthResponse(string Token, string RefreshToken, UserResponse User)
+{
+    public AuthResponse() : this(string.Empty, string.Empty, new UserResponse()) { }
+}
 
 public record UserResponse(
     int      Id,
@@ -12,7 +15,10 @@ public record UserResponse(
     string?  Address,
     string   Role,
     bool     IsActive,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public UserResponse() : this(0, string.Empty, string.Empty, string.Empty, null, string.Empty, true, DateTime.UtcNow) { }
+}
 
 public record ProductResponse(
     int      Id,
@@ -23,7 +29,10 @@ public record ProductResponse(
     string   Category,
     string?  ImageUrl,
     bool     IsActive,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public ProductResponse() : this(0, string.Empty, string.Empty, 0, 0, string.Empty, null, true, DateTime.UtcNow) { }
+}
 
 public record PetResponse(
     int      Id,
@@ -35,7 +44,10 @@ public record PetResponse(
     string   Description,
     string?  ImageUrl,
     string   Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public PetResponse() : this(0, string.Empty, string.Empty, string.Empty, 0, 0, string.Empty, null, string.Empty, DateTime.UtcNow) { }
+}
 
 public record OrderResponse(
     int                      Id,
@@ -57,7 +69,10 @@ public record OrderResponse(
     DateTime                 CreatedAt        = default,
     DateTime?                UpdatedAt        = null,
     DateTime?                ShippedAt        = null,
-    DateTime?                DeliveredAt      = null);
+    DateTime?                DeliveredAt      = null)
+{
+    public OrderResponse() : this(0, 0, string.Empty, string.Empty, string.Empty, null, string.Empty, 0) { }
+}
 
 public record OrderItemResponse(
     int     Id,
@@ -67,7 +82,10 @@ public record OrderItemResponse(
     string? PetName,
     int     Quantity,
     decimal UnitPrice,
-    decimal SubTotal = 0);
+    decimal SubTotal = 0)
+{
+    public OrderItemResponse() : this(0, null, null, null, null, 0, 0, 0) { }
+}
 
 public record PayOsPaymentLinkResponse(
     long OrderCode,
@@ -76,14 +94,20 @@ public record PayOsPaymentLinkResponse(
     string PaymentLinkId,
     string CheckoutUrl,
     string QrCode,
-    string Status);
+    string Status)
+{
+    public PayOsPaymentLinkResponse() : this(0, 0, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty) { }
+}
 
 /// <summary>Kết quả tạo vận đơn với hãng ship ngoài</summary>
 public record ShipmentCreatedResponse(
     string TrackingCode,
     string Provider,
     string TrackingUrl,
-    string Message);
+    string Message)
+{
+    public ShipmentCreatedResponse() : this(string.Empty, string.Empty, string.Empty, string.Empty) { }
+}
 
 /// <summary>Đánh giá sản phẩm / thú cưng (#14)</summary>
 public record ReviewResponse(
@@ -94,7 +118,10 @@ public record ReviewResponse(
     int?     PetId,
     int      Rating,
     string   Comment,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public ReviewResponse() : this(0, 0, string.Empty, null, null, 5, string.Empty, DateTime.UtcNow) { }
+}
 
 /// <summary>Danh mục sản phẩm / thú cưng (#10)</summary>
 public record CategoryResponse(
@@ -102,7 +129,10 @@ public record CategoryResponse(
     string  Name,
     string  Type,
     string? Description,
-    string? Icon);
+    string? Icon)
+{
+    public CategoryResponse() : this(0, string.Empty, string.Empty, null, null) { }
+}
 
 /// <summary>Thống kê tổng hợp cho Admin Dashboard (#8)</summary>
 public record OrderStatsResponse(
@@ -114,16 +144,26 @@ public record OrderStatsResponse(
     int                      AwaitingReceiptCount,
     int                      DeliveredCount,
     int                      CancelledCount,
-    List<MonthlyRevenueItem> MonthlyRevenue);
+    List<MonthlyRevenueItem> MonthlyRevenue)
+{
+    public OrderStatsResponse() : this(0, 0, 0, 0, 0, 0, 0, 0, new List<MonthlyRevenueItem>()) { }
+}
 
 /// <summary>Doanh thu theo tháng cho biểu đồ Chart.js</summary>
-public record MonthlyRevenueItem(int Year, int Month, decimal Revenue, int OrderCount);
+public record MonthlyRevenueItem(int Year, int Month, decimal Revenue, int OrderCount)
+{
+    public MonthlyRevenueItem() : this(0, 0, 0, 0) { }
+}
 
-public record ApiResponse<T>(bool Success, string? Message, T? Data);
+public record ApiResponse<T>(bool Success, string? Message, T? Data)
+{
+    public ApiResponse() : this(true, null, default) { }
+}
 
 public record PagedResponse<T>(List<T> Items, int TotalCount, int Page, int PageSize)
 {
-    public int  TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
+    public PagedResponse() : this(new List<T>(), 0, 1, 10) { }
+    public int  TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
     public bool HasPrev    => Page > 1;
     public bool HasNext    => Page < TotalPages;
 }
@@ -136,4 +176,7 @@ public record AuditLogResponse(
     string   Action,
     int?     OrderId,
     string?  Details,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public AuditLogResponse() : this(0, 0, string.Empty, string.Empty, null, null, DateTime.UtcNow) { }
+}

@@ -24,7 +24,7 @@ public class IndexModel : PageModel
     public int                   PetTotal     { get; set; }
     public int                   ProductPages { get; set; }
     public int                   PetPages     { get; set; }
-    public const int             PageSize     = 9;
+    public const int             PageSize     = 8;
 
     // Sections riêng theo category (khi không lọc)
     public List<ProductResponse> FoodProducts      { get; set; } = [];
@@ -82,11 +82,19 @@ public class IndexModel : PageModel
             AccessoryProducts = all.Where(p => p.Category == "Accessory") .Take(4).ToList();
 
             var petResult = petTask.Result;
-            if (petResult?.Data != null)
+            if (petResult?.Data?.Items?.Any() == true)
             {
                 Pets     = petResult.Data.Items;
                 PetTotal = petResult.Data.TotalCount;
                 PetPages = petResult.Data.TotalPages;
+            }
+            else
+            {
+                var allPets = await _petSvc.GetAllAsync();
+                var available = allPets?.Data?.Where(p => string.Equals(p.Status, "Available", StringComparison.OrdinalIgnoreCase)).ToList() ?? [];
+                Pets     = available.Skip((petPage - 1) * PageSize).Take(PageSize).ToList();
+                PetTotal = available.Count;
+                PetPages = (int)Math.Ceiling((double)Math.Max(1, PetTotal) / PageSize);
             }
         }
     }

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
+using PetShop.API.Formatters;
 using PetShop.API.Hubs;
 using PetShop.API.Middleware;
 using PetShop.API.Profiles;
@@ -83,7 +85,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
                     context.Token = accessToken;
+                }
+                else
+                {
+                    var authHeader = context.Request.Headers.Authorization.ToString();
+                    if (!string.IsNullOrEmpty(authHeader) && !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = authHeader.Trim();
+                    }
+                }
                 return Task.CompletedTask;
             }
         };
@@ -99,7 +111,19 @@ odataBuilder.EntitySet<Product>("Products");
 odataBuilder.EntitySet<Pet>("Pets");
 odataBuilder.EntitySet<Order>("Orders");
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Media Formatter & Content Negotiation (Yêu cầu đồ án)
+        options.RespectBrowserAcceptHeader = true; // Đàm phán theo header Accept
+        options.ReturnHttpNotAcceptable = true;    // Trả về 406 Not Acceptable nếu không hỗ trợ
+        options.OutputFormatters.Add(new CsvOutputFormatter()); // Custom Media Formatter: text/csv
+    })
+    .AddXmlDataContractSerializerFormatters()      // Media Formatter XML: application/xml
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
     .AddOData(options => options
         .Select().Filter().OrderBy().Expand().Count().SetMaxTop(100)
         .AddRouteComponents("odata", odataBuilder.GetEdmModel()));
@@ -132,11 +156,12 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PetShop API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization. Nhập: Bearer {token}",
+        Description = "Nhập JWT Token của bạn (có thể dán trực tiếp token hoặc kèm chữ Bearer)",
         Name        = "Authorization",
         In          = ParameterLocation.Header,
-        Type        = SecuritySchemeType.ApiKey,
-        Scheme      = "Bearer"
+        Type        = SecuritySchemeType.Http,
+        Scheme      = "bearer",
+        BearerFormat = "JWT"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement {{
         new OpenApiSecurityScheme {

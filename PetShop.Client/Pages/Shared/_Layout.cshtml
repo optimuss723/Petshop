@@ -425,11 +425,12 @@ function showToast(msg, type = 'success') {
 @if (isAuth && !isAdmin)
 {
     var userId = Context.Session.GetString("UserId") ?? "";
-    var orderHubUrlStr = ((IConfiguration)Context.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders";
+    var userToken = Context.Session.GetString("AccessToken") ?? "";
+    var orderHubUrlStr = ((IConfiguration)Context.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:50142/hubs/orders";
     <text>
 const orderHubUrl = '@orderHubUrlStr';
 const orderConn = new signalR.HubConnectionBuilder()
-    .withUrl(orderHubUrl)
+    .withUrl(orderHubUrl, { accessTokenFactory: () => '@userToken' })
     .withAutomaticReconnect()
     .build();
 
@@ -446,7 +447,9 @@ orderConn.on('OrderStatusChanged', data => {
 });
 
 orderConn.start()
-    .then(() => orderConn.invoke('JoinUserGroup', '@userId'))
+    .then(() => {
+        if ('@userId') orderConn.invoke('JoinUserGroup', '@userId').catch(e => console.warn(e));
+    })
     .catch(err => console.warn('[SignalR] Order hub:', err));
     </text>
 }
@@ -454,11 +457,12 @@ orderConn.start()
 // ── SignalR: Admin New Order Alerts ─────────────────────────────────
 @if (isAdmin)
 {
-    var adminHubUrlStr = ((IConfiguration)Context.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders";
+    var adminToken = Context.Session.GetString("AccessToken") ?? "";
+    var adminHubUrlStr = ((IConfiguration)Context.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:50142/hubs/orders";
     <text>
 const adminOrderHubUrl = '@adminHubUrlStr';
 const adminOrderConn = new signalR.HubConnectionBuilder()
-    .withUrl(adminOrderHubUrl)
+    .withUrl(adminOrderHubUrl, { accessTokenFactory: () => '@adminToken' })
     .withAutomaticReconnect()
     .build();
 
@@ -480,7 +484,7 @@ adminOrderConn.on('NewOrder', data => {
 });
 
 adminOrderConn.start()
-    .then(() => adminOrderConn.invoke('JoinAdminGroup'))
+    .then(() => adminOrderConn.invoke('JoinAdminGroup').catch(e => console.warn(e)))
     .catch(err => console.warn('[SignalR] Admin order hub:', err));
     </text>
 }

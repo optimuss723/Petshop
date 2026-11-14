@@ -1,6 +1,10 @@
 .form-control.is-invalid { border-color: #c44048; }
 .form-control.is-valid { border-color: #087d62; }
-.invalid-feedback { display: block; color: #c44048; font-size: .82rem; margin-top: .35rem; }
+.invalid-feedback { display: none; color: #c44048; font-size: .82rem; margin-top: .35rem; }
+.is-invalid ~ .invalid-feedback,
+.input-group:has(.is-invalid) ~ .invalid-feedback {
+    display: block;
+}
 .password-strength { background-color: #e6eeea; border-radius: 999px; height: 5px; margin-top: .55rem; overflow: hidden; }
 .password-strength-bar { background-color: #c44048; height: 100%; transition: all .3s ease; }
 .password-strength-bar.weak { background-color: #c44048; width: 33%; }

@@ -38,3 +38,6 @@ desktop.ini
 .idea/
 .vscode/
 *.DotSettings.user
+
+## Archive
+_archive_old_microservices/

@@ -15,20 +15,20 @@ public class IndexModel : PageModel
     public string? Category  { get; set; }
     public string? Sort      { get; set; }
     public int PageNumber    { get; set; } = 1;
-    public int PageSize      { get; set; } = 10;
+    public int PageSize      { get; set; } = 8;
     public int TotalCount    { get; set; }
     public int TotalPages    => (int)Math.Ceiling((double)TotalCount / PageSize);
     public bool UsedOData    { get; set; }
 
     public IndexModel(IProductClientService svc) => _svc = svc;
 
-    public async Task<IActionResult> OnGetAsync(string? search, string? category, string? sort = "CreatedAt desc", int pageNumber = 1, int pageSize = 10)
+    public async Task<IActionResult> OnGetAsync(string? search, string? category, string? sort = "CreatedAt desc", int pageNumber = 1, int pageSize = 8)
     {
         Search   = search;
         Category = category;
         Sort     = string.IsNullOrWhiteSpace(sort) ? "CreatedAt desc" : sort;
         PageNumber = Math.Max(1, pageNumber);
-        PageSize = Math.Clamp(pageSize, 5, 50);
+        PageSize = Math.Clamp(pageSize, 4, 50);
         Message  = TempData["Message"]?.ToString();
 
         var skip = (PageNumber - 1) * PageSize;

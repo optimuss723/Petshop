@@ -82,14 +82,14 @@
         <div class="card h-100 ps-management-card">
             @if (!string.IsNullOrEmpty(pet.ImageUrl))
             {
-                <div class="ps-management-card__thumb">
-                    <img src="@pet.ImageUrl" alt="@pet.Name" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'ps-management-card__thumb-fallback fs-1\'>@PetEmoji(pet.Category)</div>'"/>
+                <div class="ps-management-card__thumb" style="height: 180px; overflow: hidden; background: #f8fafc;">
+                    <img src="@pet.ImageUrl" alt="@pet.Name" loading="lazy" referrerpolicy="no-referrer" style="height: 180px; width: 100%; object-fit: cover;" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\'ps-management-card__thumb-fallback fs-1\' style=\'height:180px;display:flex;align-items:center;justify-content:center;\'>@PetEmoji(pet.Category)</div>'"/>
                 </div>
             }
             else
             {
-                <div class="ps-management-card__thumb">
-                    <div class="ps-management-card__thumb-fallback fs-1">
+                <div class="ps-management-card__thumb" style="height: 180px; overflow: hidden; background: #f8fafc;">
+                    <div class="ps-management-card__thumb-fallback fs-1" style="height: 180px; display: flex; align-items: center; justify-content: center;">
                         @PetEmoji(pet.Category)
                     </div>
                 </div>

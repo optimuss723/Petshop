@@ -30,11 +30,16 @@ body.ps-backoffice { background: #f3f7f5; }
 .ps-metric__value { color: var(--ps-ink); font-size: 1.4rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.2; }
 .ps-metric__label { color: var(--ps-muted); font-size: .78rem; margin-top: .18rem; }
 .ps-filter-toolbar { background: #fff; border: 1px solid var(--ps-line); border-radius: var(--ps-radius); box-shadow: var(--ps-shadow-sm); margin-bottom: 1rem; padding: 1rem; }
-.ps-management-card { background: #fff; border: 1px solid var(--ps-line); border-radius: var(--ps-radius); box-shadow: var(--ps-shadow-sm); height: 100%; overflow: hidden; }
-.ps-management-card__image { align-items: center; background: #eef8f3; display: flex; height: 175px; justify-content: center; overflow: hidden; }
-.ps-management-card__image img { height: 100%; object-fit: cover; width: 100%; }
-.ps-management-card__body { padding: 1rem; }
-.ps-management-card__footer { border-top: 1px solid var(--ps-line); display: flex; gap: .55rem; padding: .8rem 1rem; }
+.ps-management-card { background: #fff; border: 1px solid var(--ps-line); border-radius: var(--ps-radius); box-shadow: var(--ps-shadow-sm); height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+.ps-management-card__thumb,
+.ps-management-card__image { align-items: center; background: #f8fafc; display: flex; height: 180px; max-height: 180px; min-height: 180px; justify-content: center; overflow: hidden; position: relative; border-bottom: 1px solid var(--ps-line); }
+.ps-management-card__thumb img,
+.ps-management-card__image img { height: 180px; max-height: 180px; object-fit: cover; width: 100%; display: block; transition: transform 0.25s ease; }
+.ps-management-card:hover .ps-management-card__thumb img,
+.ps-management-card:hover .ps-management-card__image img { transform: scale(1.04); }
+.ps-management-card__thumb-fallback { align-items: center; background: #f1f5f9; display: flex; height: 180px; justify-content: center; width: 100%; }
+.ps-management-card__body { padding: 1rem; flex-grow: 1; display: flex; flex-direction: column; }
+.ps-management-card__footer { border-top: 1px solid var(--ps-line); display: flex; gap: .55rem; padding: .8rem 1rem; margin-top: auto; }
 .ps-management-card__footer > * { flex: 1; }
 .ps-form-panel { background: #fff; border: 1px solid var(--ps-line); border-radius: var(--ps-radius); box-shadow: var(--ps-shadow-sm); padding: clamp(1.15rem, 2vw, 1.7rem); }
 .ps-form-title { color: var(--ps-muted); font-size: .72rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }

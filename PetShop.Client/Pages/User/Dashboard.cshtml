@@ -324,11 +324,32 @@
 
 const token  = '@HttpContext.Session.GetString("AccessToken")';
 const userId = '@HttpContext.Session.GetString("UserId")';
-const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders")';
-const conn   = new signalR.HubConnectionBuilder()
+const hubUrl = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:50142/hubs/orders")';
+
+const conn = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl, { accessTokenFactory: () => token })
     .withAutomaticReconnect()
     .build();
+
+const badge = document.getElementById("signalr-badge");
+
+function updateSignalRBadge(status) {
+    if (!badge) return;
+    if (status === 'connected') {
+        badge.className = "badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-semibold";
+        badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Trực tuyến';
+    } else if (status === 'reconnecting') {
+        badge.className = "badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1.5 fw-semibold";
+        badge.innerHTML = '<span class="spinner-grow spinner-grow-sm me-1" role="status"></span>Đang kết nối lại...';
+    } else {
+        badge.className = "badge bg-secondary-subtle text-secondary border px-3 py-1.5 fw-semibold";
+        badge.innerHTML = '<i class="bi bi-wifi-off me-1"></i>Ngoại tuyến';
+    }
+}
+
+conn.onreconnecting(() => updateSignalRBadge('reconnecting'));
+conn.onreconnected(() => updateSignalRBadge('connected'));
+conn.onclose(() => updateSignalRBadge('offline'));
 
 conn.on("OrderStatusChanged", data => {
     const alerts = document.getElementById("order-status-alerts");
@@ -355,19 +376,18 @@ conn.on("OrderStatusChanged", data => {
 
 conn.start()
     .then(async () => {
-        const badge = document.getElementById("signalr-badge");
-        if (badge) {
-            badge.className   = "badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fw-semibold";
-            badge.innerHTML = '<i class="bi bi-broadcast me-1"></i>Đã kết nối realtime';
+        updateSignalRBadge('connected');
+        if (userId) {
+            try {
+                await conn.invoke("JoinUserGroup", userId);
+            } catch (err) {
+                console.warn("SignalR JoinUserGroup info:", err);
+            }
         }
-        await conn.invoke("JoinUserGroup", userId);
     })
-    .catch(() => {
-        const badge = document.getElementById("signalr-badge");
-        if (badge) {
-            badge.className   = "badge bg-secondary-subtle text-secondary border px-3 py-1.5 fw-semibold";
-            badge.innerHTML = '<i class="bi bi-wifi-off me-1"></i>Ngoại tuyến';
-        }
+    .catch((err) => {
+        console.warn("SignalR connection error:", err);
+        updateSignalRBadge('offline');
     });
 
 function reorderOrder(items) {

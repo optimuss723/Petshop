@@ -1,4 +1,4 @@
-﻿@page
+@page
 @model PetShop.Client.Pages.Staff.Pets.IndexModel
 @{ ViewData["Title"] = "Quản lý Thú cưng"; }
 
@@ -36,24 +36,40 @@
 
 <div class="ps-filter-toolbar mb-4">
     <form method="get" class="row g-2 align-items-center">
-        <div class="col-md-4">
+        <div class="col-md-3">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Tìm tên, giống..." value="@Model.Search"/>
+            </div>
+        </div>
+        <div class="col-md-2">
             <select name="category" class="form-select">
                 <option value="">Tất cả giống loài</option>
-                <option value="Dog"  selected="@(Model.Category=="Dog")">🐕 Chó cảnh</option>
-                <option value="Cat"  selected="@(Model.Category=="Cat")">🐈 Mèo cảnh</option>
-                <option value="Bird" selected="@(Model.Category=="Bird")">🐦 Chim cảnh</option>
-                <option value="Fish" selected="@(Model.Category=="Fish")">🐟 Cá cảnh</option>
+                <option value="Dog"    selected="@(Model.Category=="Dog")">🐕 Chó cảnh</option>
+                <option value="Cat"    selected="@(Model.Category=="Cat")">🐈 Mèo cảnh</option>
+                <option value="Bird"   selected="@(Model.Category=="Bird")">🐦 Chim cảnh</option>
+                <option value="Fish"   selected="@(Model.Category=="Fish")">🐟 Cá cảnh</option>
+                <option value="Rabbit" selected="@(Model.Category=="Rabbit")">🐇 Thỏ kiểng</option>
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-2">
             <select name="status" class="form-select">
                 <option value="">Tất cả trạng thái</option>
-                <option value="Available" selected="@(Model.Status=="Available")">Còn hàng (Available)</option>
-                <option value="Reserved"  selected="@(Model.Status=="Reserved")">Đã đặt cọc (Reserved)</option>
-                <option value="Sold"      selected="@(Model.Status=="Sold")">Đã bán (Sold)</option>
+                <option value="Available" selected="@(Model.Status=="Available")">Sẵn sàng đón</option>
+                <option value="Reserved"  selected="@(Model.Status=="Reserved")">Đã đặt cọc</option>
+                <option value="Sold"      selected="@(Model.Status=="Sold")">Đã bán</option>
             </select>
         </div>
-        <div class="col-md-4 d-flex gap-2">
+        <div class="col-md-2">
+            <select name="pageSize" class="form-select">
+                <option value="4"  selected="@(Model.PageSize==4)">4 / trang</option>
+                <option value="8"  selected="@(Model.PageSize==8)">8 / trang</option>
+                <option value="12" selected="@(Model.PageSize==12)">12 / trang</option>
+                <option value="16" selected="@(Model.PageSize==16)">16 / trang</option>
+                <option value="24" selected="@(Model.PageSize==24)">24 / trang</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
             <button type="submit" class="btn btn-primary flex-fill">
                 <i class="bi bi-funnel me-1"></i>Lọc
             </button>
@@ -144,3 +160,23 @@
     </div>
 }
 </div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav class="d-flex justify-content-center mt-4" aria-label="Phân trang thú cưng">
+        <ul class="pagination pagination-sm shadow-sm">
+            <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                <a class="page-link" href="?search=@Model.Search&category=@Model.Category&status=@Model.Status&pageNumber=@(Model.PageNumber - 1)&pageSize=@Model.PageSize">‹</a>
+            </li>
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                    <a class="page-link" href="?search=@Model.Search&category=@Model.Category&status=@Model.Status&pageNumber=@i&pageSize=@Model.PageSize">@i</a>
+                </li>
+            }
+            <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="?search=@Model.Search&category=@Model.Category&status=@Model.Status&pageNumber=@(Model.PageNumber + 1)&pageSize=@Model.PageSize">›</a>
+            </li>
+        </ul>
+    </nav>
+}

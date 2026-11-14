@@ -80,26 +80,24 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-// ── Chờ ApiGateway sẵn sàng (giải quyết race condition khi chạy VS) ──
-// Client tự động retry kết nối đến Gateway mỗi 1 giây, tối đa 60 giây.
-// → Chạy F5 trong VS không cần đợi tay, browser vào là được luôn.
+// ── Chờ Web API sẵn sàng (giải quyết race condition khi chạy song song) ──
 if (app.Environment.IsDevelopment())
 {
-    var gatewayUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5000";
-    var logger     = app.Logger;
+    var apiUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:50142";
+    var logger = app.Logger;
 
     using var probe = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
     var deadline    = DateTime.UtcNow.AddSeconds(60);
     var ready       = false;
 
-    logger.LogInformation("⏳ Waiting for ApiGateway at {Url}...", gatewayUrl);
+    logger.LogInformation("⏳ Waiting for Web API at {Url}...", apiUrl);
 
     while (DateTime.UtcNow < deadline && !ready)
     {
         try
         {
-            var res = await probe.GetAsync(gatewayUrl);
-            ready = true; // bất kỳ HTTP response nào (kể cả 404) = Gateway đang chạy
+            var res = await probe.GetAsync(apiUrl);
+            ready = true;
         }
         catch
         {
@@ -108,9 +106,9 @@ if (app.Environment.IsDevelopment())
     }
 
     if (ready)
-        logger.LogInformation("✅ ApiGateway is ready.");
+        logger.LogInformation("✅ Web API is ready.");
     else
-        logger.LogWarning("⚠️  ApiGateway did not respond within 60s — starting anyway.");
+        logger.LogWarning("⚠️  Web API did not respond within 60s — starting anyway.");
 }
 
 app.UseStaticFiles();

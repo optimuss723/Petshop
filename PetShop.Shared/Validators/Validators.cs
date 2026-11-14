@@ -16,13 +16,11 @@ public class RegisterValidator : AbstractValidator<RegisterRequest>
 {
     public RegisterValidator()
     {
-        RuleFor(x => x.FullName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.FullName).NotEmpty().MinimumLength(2).MaximumLength(100);
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(6)
-            .Matches("[A-Z]").WithMessage("Mật khẩu phải có ít nhất 1 chữ hoa.")
-            .Matches("[0-9]").WithMessage("Mật khẩu phải có ít nhất 1 chữ số.");
-        RuleFor(x => x.Phone).NotEmpty().Matches(@"^[0-9]{10,11}$")
-            .WithMessage("Số điện thoại không hợp lệ.");
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.Phone).NotEmpty().Matches(@"^(0|\+84)[0-9]{9,10}$")
+            .WithMessage("Số điện thoại không hợp lệ (VD: 0987654321).");
     }
 }
 

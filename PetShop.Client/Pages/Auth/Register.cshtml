@@ -199,7 +199,7 @@
                 setInvalid(fullName, 'fullName-error', 'Họ tên phải có ít nhất 2 ký tự');
                 return false;
             }
-            setValid(fullName);
+            setValid(fullName, 'fullName-error');
             return true;
         }
 
@@ -210,7 +210,7 @@
                 setInvalid(email, 'email-error', 'Email không hợp lệ');
                 return false;
             }
-            setValid(email);
+            setValid(email, 'email-error');
             return true;
         }
 
@@ -220,7 +220,7 @@
                 setInvalid(password, 'password-error', 'Mật khẩu phải có ít nhất 6 ký tự');
                 return false;
             }
-            setValid(password);
+            setValid(password, 'password-error');
             return true;
         }
 
@@ -231,7 +231,7 @@
                 setInvalid(phone, 'phone-error', 'Số điện thoại không hợp lệ (VD: 0987654321)');
                 return false;
             }
-            setValid(phone);
+            setValid(phone, 'phone-error');
             return true;
         }
 
@@ -241,12 +241,19 @@
             const errorElement = document.getElementById(errorId);
             if (errorElement) {
                 errorElement.textContent = message;
+                errorElement.style.display = 'block';
             }
         }
 
-        function setValid(element) {
+        function setValid(element, errorId) {
             element.classList.remove('is-invalid');
             element.classList.add('is-valid');
+            if (errorId) {
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) {
+                    errorElement.style.display = 'none';
+                }
+            }
         }
 
         // Password strength checker

@@ -1,0 +1,172 @@
+@baseUrl = http://localhost:50142
+
+### 1. Đăng nhập lấy JWT Token (Admin)
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@petshop.com",
+  "password": "Admin@123"
+}
+
+### Lưu token Admin
+@adminToken = {{loginAdmin.response.body.data.token}}
+
+### 2. Đăng nhập lấy JWT Token (Staff)
+# @name loginStaff
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff@petshop.com",
+  "password": "Staff@123"
+}
+
+### Lưu token Staff
+@staffToken = {{loginStaff.response.body.data.token}}
+
+### 3. Đăng nhập lấy JWT Token (Customer)
+# @name loginCustomer
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "customer@petshop.com",
+  "password": "Customer@123"
+}
+
+### Lưu token Customer
+@customerToken = {{loginCustomer.response.body.data.token}}
+
+### =======================================================
+### TIÊU CHÍ 1: 5 APIS CRUD SẢN PHẨM (Thành viên 1)
+### =======================================================
+
+### 1.1 GET All Products (JSON)
+GET {{baseUrl}}/api/products
+Accept: application/json
+
+### 1.2 GET Product by ID
+GET {{baseUrl}}/api/products/1
+Accept: application/json
+
+### 1.3 POST Create Product (Yêu cầu quyền Admin hoặc Staff)
+POST {{baseUrl}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Pate Whiskas Vị Cá Thu 85g",
+  "description": "Pate dinh dưỡng thơm ngon cho mèo mọi lứa tuổi",
+  "price": 25000,
+  "stock": 100,
+  "category": "Food",
+  "imageUrl": "https://images.unsplash.com/photo-1568640347023-a616a30bc3bd"
+}
+
+### 1.4 PUT Update Product
+PUT {{baseUrl}}/api/products/1
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Thức ăn Royal Canin cho chó trưởng thành (Updated)",
+  "description": "Thức ăn hạt cao cấp bổ sung dinh dưỡng tối ưu",
+  "price": 360000,
+  "stock": 95,
+  "category": "Food",
+  "imageUrl": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119"
+}
+
+### 1.5 DELETE Product
+DELETE {{baseUrl}}/api/products/15
+Authorization: Bearer {{adminToken}}
+
+
+### =======================================================
+### TIÊU CHÍ 2: 5 APIS CRUD THÚ CƯNG (Thành viên 2)
+### =======================================================
+
+### 2.1 GET All Pets (JSON)
+GET {{baseUrl}}/api/pets
+Accept: application/json
+
+### 2.2 GET Pet by ID
+GET {{baseUrl}}/api/pets/1
+Accept: application/json
+
+### 2.3 POST Create Pet (Yêu cầu quyền Admin hoặc Staff)
+POST {{baseUrl}}/api/pets
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "name": "Milo",
+  "breed": "Mèo Ba Tư",
+  "category": "Cat",
+  "ageMonths": 3,
+  "price": 5500000,
+  "description": "Mèo Ba Tư lông xù siêu đáng yêu, thuần chủng",
+  "status": "Available",
+  "imageUrl": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e"
+}
+
+### 2.4 PUT Update Pet
+PUT {{baseUrl}}/api/pets/1
+Content-Type: application/json
+Authorization: Bearer {{staffToken}}
+
+{
+  "name": "Buddy Siêu Ngoan",
+  "breed": "Golden Retriever",
+  "category": "Dog",
+  "ageMonths": 4,
+  "price": 9000000,
+  "description": "Golden Retriever thuần chủng đã hoàn thành huấn luyện cơ bản",
+  "status": "Available",
+  "imageUrl": "https://images.unsplash.com/photo-1552053831-71594a27632d"
+}
+
+### 2.5 DELETE Pet
+DELETE {{baseUrl}}/api/pets/8
+Authorization: Bearer {{staffToken}}
+
+
+### =======================================================
+### TIÊU CHÍ 3: CONTENT NEGOTIATION & MEDIA FORMATTER
+### =======================================================
+
+### 3.1 Content Negotiation: Yêu cầu trả về JSON
+GET {{baseUrl}}/api/products
+Accept: application/json
+
+### 3.2 Content Negotiation: Yêu cầu trả về XML
+GET {{baseUrl}}/api/products
+Accept: application/xml
+
+### 3.3 Custom Media Formatter: Yêu cầu trả về CSV
+GET {{baseUrl}}/api/products
+Accept: text/csv
+
+### 3.4 Định dạng không hỗ trợ -> Server trả về 406 Not Acceptable
+GET {{baseUrl}}/api/products
+Accept: application/pdf
+
+
+### =======================================================
+### TIÊU CHÍ 4: TRUY VẤN ODATA
+### =======================================================
+
+### 4.1 OData Filter: Lọc sản phẩm có giá > 200.000 VNĐ
+GET {{baseUrl}}/odata/Products?$filter=Price gt 200000
+
+### 4.2 OData OrderBy: Sắp xếp theo giá giảm dần
+GET {{baseUrl}}/odata/Products?$orderby=Price desc
+
+### 4.3 OData Select: Chỉ lấy các trường Id, Name, Price, Category
+GET {{baseUrl}}/odata/Products?$select=Id,Name,Price,Category
+
+### 4.4 OData Pets: Lọc thú cưng thuộc loài Chó (Dog)
+GET {{baseUrl}}/odata/Pets?$filter=Category eq 'Dog'
+

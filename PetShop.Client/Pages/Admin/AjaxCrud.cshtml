@@ -1,0 +1,1020 @@
+@page
+@model PetShop.Client.Pages.Admin.AjaxCrudModel
+@{
+    ViewData["Title"] = "Quản lý bằng AJAX - Đồ án 2 người";
+}
+
+<div class="ps-backoffice-heading mb-3">
+    <div>
+        <span class="ps-kicker"><i class="bi bi-cpu-fill text-primary me-1"></i>Web API Project Showcase</span>
+        <h1 class="fw-bold">Quản lý Dữ liệu bằng AJAX (Đồ án Nhóm 2 người)</h1>
+        <p class="text-muted mb-0">
+            Minh chứng 8 tiêu chí: <strong>5 CRUD APIs</strong>, <strong>Gọi bằng AJAX</strong>, <strong>Content Negotiation (JSON/XML/CSV)</strong>, <strong>OData</strong>, <strong>AutoMapper</strong>, <strong>Data Annotations</strong> & <strong>JWT Bearer</strong>.
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary px-3 py-2 fs-7"><i class="bi bi-shield-lock-fill me-1"></i>JWT Active</span>
+        <span class="badge bg-secondary px-3 py-2 fs-7" id="activeApiUrlBadge">API: @Model.ApiBaseUrl</span>
+    </div>
+</div>
+
+<!-- Info banner for grading / presentation -->
+<div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #f0f7ff 0%, #e6f0fa 100%); border-left: 4px solid #0d6efd !important;">
+    <div class="card-body py-3">
+        <div class="row align-items-center">
+            <div class="col-md-6 border-end">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary">Thành viên 1</span>
+                    <strong class="text-primary">Module Sản phẩm (Products)</strong>
+                </div>
+                <div class="small text-muted">
+                    • 5 APIs CRUD: <code>GET /api/products</code>, <code>GET {id}</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code><br>
+                    • Custom Media Formatter: <code>CsvOutputFormatter</code> (hỗ trợ <code>text/csv</code>)<br>
+                    • Content Negotiation: XML (DataContract) & JSON & CSV
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-success">Thành viên 2</span>
+                    <strong class="text-success">Module Thú cưng (Pets) & OData</strong>
+                </div>
+                <div class="small text-muted">
+                    • 5 APIs CRUD: <code>GET /api/pets</code>, <code>GET {id}</code>, <code>POST</code>, <code>PUT</code>, <code>DELETE</code><br>
+                    • Thư viện OData: <code>/odata/Products</code> & <code>/odata/Pets</code> ($filter, $select, $orderby)<br>
+                    • Thư viện AutoMapper: Mapping Profile chuẩn hóa DTO ↔ Entity
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nav Tabs -->
+<ul class="nav nav-pills mb-3 gap-2" id="ajaxCrudTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active px-4 fw-semibold" id="products-tab" data-bs-toggle="pill" data-bs-target="#tab-products" type="button" role="tab">
+            <i class="bi bi-box-seam me-1"></i> Module Sản phẩm (Thành viên 1)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link px-4 fw-semibold" id="pets-tab" data-bs-toggle="pill" data-bs-target="#tab-pets" type="button" role="tab">
+            <i class="bi bi-heart-pulse me-1"></i> Module Thú cưng (Thành viên 2)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link px-4 fw-semibold" id="negot-tab" data-bs-toggle="pill" data-bs-target="#tab-negot" type="button" role="tab">
+            <i class="bi bi-arrow-left-right me-1"></i> Content Negotiation & OData Playground
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Contents -->
+<div class="tab-content">
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TAB 1: SẢN PHẨM (Thành viên 1)                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade show active" id="tab-products" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 500px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="productSearch" class="form-control border-start-0" placeholder="Tìm sản phẩm theo tên..." onkeyup="filterProducts()">
+                    </div>
+                    <select id="productCategoryFilter" class="form-select" style="max-width: 170px;" onchange="filterProducts()">
+                        <option value="">Tất cả danh mục</option>
+                        <option value="Food">🍖 Thức ăn</option>
+                        <option value="Accessory">🎀 Phụ kiện</option>
+                        <option value="Medicine">💊 Y tế/Thuốc</option>
+                        <option value="Toy">🎾 Đồ chơi</option>
+                        <option value="Grooming">✂️ Vệ sinh</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadProductsAjax()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Tải lại (GET all)
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="openProductCreateModal()">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm sản phẩm (POST)
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th style="width: 80px;">Ảnh</th>
+                                <th>Tên sản phẩm</th>
+                                <th>Danh mục</th>
+                                <th>Giá bán</th>
+                                <th>Tồn kho</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end" style="width: 220px;">Thao tác (AJAX)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Đang tải dữ liệu sản phẩm bằng AJAX...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TAB 2: THÚ CƯNG (Thành viên 2)                                   -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="tab-pets" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 500px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="petSearch" class="form-control border-start-0" placeholder="Tìm thú cưng theo tên, giống..." onkeyup="filterPets()">
+                    </div>
+                    <select id="petCategoryFilter" class="form-select" style="max-width: 170px;" onchange="filterPets()">
+                        <option value="">Tất cả loài</option>
+                        <option value="Dog">🐕 Chó</option>
+                        <option value="Cat">🐈 Mèo</option>
+                        <option value="Bird">🦜 Chim</option>
+                        <option value="Fish">🐠 Cá</option>
+                        <option value="Rabbit">🐇 Thỏ</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="loadPetsAjax()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Tải lại (GET all)
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="openPetCreateModal()">
+                        <i class="bi bi-plus-circle me-1"></i>Thêm thú cưng (POST)
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th style="width: 80px;">Ảnh</th>
+                                <th>Tên thú cưng</th>
+                                <th>Loài / Giống</th>
+                                <th>Tuổi</th>
+                                <th>Giá bán</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end" style="width: 220px;">Thao tác (AJAX)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="petsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Đang tải dữ liệu thú cưng bằng AJAX...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- TAB 3: CONTENT NEGOTIATION & ODATA PLAYGROUND                    -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="tab-negot" role="tabpanel">
+        <div class="row g-4">
+            <!-- Content Negotiation Section -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="fw-bold mb-1 text-primary"><i class="bi bi-arrow-left-right me-2"></i>Content Negotiation & Media Formatter</h5>
+                        <p class="text-muted small mb-0">Server trả về định dạng tương ứng dựa trên header <code>Accept</code>.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">1. Chọn API Endpoint:</label>
+                            <select id="negotEndpoint" class="form-select">
+                                <option value="/api/products">/api/products (Danh sách sản phẩm)</option>
+                                <option value="/api/products/1">/api/products/1 (Sản phẩm ID 1)</option>
+                                <option value="/api/pets">/api/pets (Danh sách thú cưng)</option>
+                                <option value="/api/pets/1">/api/pets/1 (Thú cưng ID 1)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">2. Chọn Media Type (Header Accept):</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="acceptHeader" id="acceptJson" value="application/json" checked>
+                                    <label class="form-check-label" for="acceptJson"><span class="badge bg-primary">JSON</span> (application/json)</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="acceptHeader" id="acceptXml" value="application/xml">
+                                    <label class="form-check-label" for="acceptXml"><span class="badge bg-warning text-dark">XML</span> (application/xml)</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="acceptHeader" id="acceptCsv" value="text/csv">
+                                    <label class="form-check-label" for="acceptCsv"><span class="badge bg-success">CSV</span> (text/csv - Custom)</label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100 mb-3" onclick="testContentNegotiation()">
+                            <i class="bi bi-send-fill me-1"></i>Gửi AJAX Request với Accept Header
+                        </button>
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="fw-semibold">Kết quả nhận được (Response):</small>
+                            <span id="negotStatusBadge" class="badge bg-secondary">Chưa gửi</span>
+                        </div>
+                        <div class="small text-muted mb-1" id="negotContentType">Content-Type: -</div>
+                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 280px; overflow-y: auto; font-size: 0.8rem;" id="negotResult">Nhấn nút trên để xem kết quả trả về từ Web API...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OData Query Section -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="fw-bold mb-1 text-success"><i class="bi bi-funnel-fill me-2"></i>OData Query Engine</h5>
+                        <p class="text-muted small mb-0">Truy vấn linh hoạt không cần sửa code backend bằng cú pháp chuẩn OData.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">1. Chọn OData EntitySet:</label>
+                            <select id="odataEntity" class="form-select" onchange="updateODataPresets()">
+                                <option value="/odata/Products">/odata/Products</option>
+                                <option value="/odata/Pets">/odata/Pets</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">2. Câu query mẫu nhanh:</label>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="setODataQuery('$filter=Price gt 200000')">Lọc giá &gt; 200k</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="setODataQuery('$orderby=Price desc')">Sắp xếp giá giảm dần</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="setODataQuery('$select=Name,Price,Stock')">Chỉ lấy Name, Price, Stock</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="setODataQuery('$top=3&$skip=0&$count=true')">Phân trang Top 3</button>
+                            </div>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted font-monospace">?</span>
+                                <input type="text" id="odataQueryInput" class="form-control font-monospace" placeholder="$filter=Price gt 100000">
+                            </div>
+                        </div>
+                        <button class="btn btn-success w-100 mb-3" onclick="testODataQuery()">
+                            <i class="bi bi-lightning-charge-fill me-1"></i>Thực thi OData Query bằng AJAX
+                        </button>
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="fw-semibold">Kết quả OData (JSON):</small>
+                            <span id="odataStatusBadge" class="badge bg-secondary">Chưa gửi</span>
+                        </div>
+                        <div class="small text-muted mb-1" id="odataUrlFull">URL: -</div>
+                        <pre class="bg-dark text-success p-3 rounded" style="max-height: 280px; overflow-y: auto; font-size: 0.8rem;" id="odataResult">Nhấn nút trên để thực thi câu truy vấn OData...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL: CHI TIẾT SẢN PHẨM (GET id)                                -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="productDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-info-circle me-1"></i>Chi tiết Sản phẩm (GET by ID)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productDetailBody">
+                <div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span> Đang tải...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL: THÊM / SỬA SẢN PHẨM (POST / PUT)                          -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="productFormModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="productFormTitle">Thêm sản phẩm mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" onsubmit="saveProductAjax(event)">
+                    <input type="hidden" id="pId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên sản phẩm <span class="text-danger">*</span></label>
+                        <input type="text" id="pName" class="form-control" required maxlength="200" placeholder="VD: Thức ăn Royal Canin">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Danh mục <span class="text-danger">*</span></label>
+                            <select id="pCategory" class="form-select" required>
+                                <option value="Food">Thức ăn</option>
+                                <option value="Accessory">Phụ kiện</option>
+                                <option value="Medicine">Y tế - Thuốc</option>
+                                <option value="Toy">Đồ chơi</option>
+                                <option value="Grooming">Vệ sinh</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Giá bán (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" id="pPrice" class="form-control" required min="1" step="1000" placeholder="VD: 150000">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Số lượng tồn kho <span class="text-danger">*</span></label>
+                            <input type="number" id="pStock" class="form-control" required min="0" placeholder="VD: 50">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">URL hình ảnh</label>
+                            <input type="url" id="pImageUrl" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả sản phẩm <span class="text-danger">*</span></label>
+                        <textarea id="pDescription" class="form-control" rows="3" required placeholder="Mô tả chi tiết sản phẩm..."></textarea>
+                    </div>
+                    <div class="modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" id="btnSaveProduct" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-circle me-1"></i>Lưu sản phẩm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL: THÊM / SỬA THÚ CƯNG (POST / PUT)                          -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="modal fade" id="petFormModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="petFormTitle">Thêm thú cưng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="petForm" onsubmit="savePetAjax(event)">
+                    <input type="hidden" id="petId">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tên thú cưng <span class="text-danger">*</span></label>
+                            <input type="text" id="petName" class="form-control" required maxlength="100" placeholder="VD: Mochi">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Giống thú cưng <span class="text-danger">*</span></label>
+                            <input type="text" id="petBreed" class="form-control" required maxlength="100" placeholder="VD: Corgi, Mèo Anh...">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Loài <span class="text-danger">*</span></label>
+                            <select id="petCategory" class="form-select" required>
+                                <option value="Dog">Chó</option>
+                                <option value="Cat">Mèo</option>
+                                <option value="Bird">Chim</option>
+                                <option value="Fish">Cá</option>
+                                <option value="Rabbit">Thỏ</option>
+                                <option value="Other">Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Tuổi (tháng) <span class="text-danger">*</span></label>
+                            <input type="number" id="petAgeMonths" class="form-control" required min="0" placeholder="VD: 3">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Trạng thái <span class="text-danger">*</span></label>
+                            <select id="petStatus" class="form-select" required>
+                                <option value="Available">Available (Còn hàng)</option>
+                                <option value="Reserved">Reserved (Đã đặt cọc)</option>
+                                <option value="Sold">Sold (Đã bán)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Giá bán (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" id="petPrice" class="form-control" required min="1" step="10000" placeholder="VD: 5000000">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">URL hình ảnh</label>
+                            <input type="url" id="petImageUrl" class="form-control" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mô tả thú cưng <span class="text-danger">*</span></label>
+                        <textarea id="petDescription" class="form-control" rows="3" required placeholder="Tính cách, sức khỏe, sổ tiêm phòng..."></textarea>
+                    </div>
+                    <div class="modal-footer px-0 pb-0">
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" id="btnSavePet" class="btn btn-success btn-sm">
+                            <i class="bi bi-check-circle me-1"></i>Lưu thú cưng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // ═══════════════════════════════════════════════════════════════
+    // GLOBAL STATE & AUTHENTICATION
+    // ═══════════════════════════════════════════════════════════════
+    const API_BASE = '@Model.ApiBaseUrl';
+    const JWT_TOKEN = '@Model.AccessToken';
+
+    let allProducts = [];
+    let allPets = [];
+
+    // Helper: Header chuẩn kèm JWT token cho Web API
+    function getAuthHeaders(contentType = 'application/json') {
+        const headers = {};
+        if (contentType) headers['Content-Type'] = contentType;
+        if (JWT_TOKEN) headers['Authorization'] = 'Bearer ' + JWT_TOKEN;
+        return headers;
+    }
+
+    // Helper: Fallback SVG vector có màu sắc và emoji tương ứng theo loại (luôn hiển thị dù offline)
+    function getFallbackSvg(category, isPet = false) {
+        const catMap = {
+            'Food': '🍖', 'Accessory': '🎀', 'Medicine': '💊', 'Toy': '🎾', 'Grooming': '✂️',
+            'Dog': '🐶', 'Cat': '🐱', 'Bird': '🦜', 'Fish': '🐠', 'Rabbit': '🐰', 'Other': '🐾'
+        };
+        const emoji = catMap[category] || (isPet ? '🐾' : '📦');
+        const bg = isPet ? '%23ecfdf5' : '%23f8fafc';
+        const stroke = isPet ? '%23a7f3d0' : '%23e2e8f0';
+        return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="16" fill="${bg}" stroke="${stroke}" stroke-width="2"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="44">${emoji}</text></svg>`;
+    }
+
+    // Helper: Trả về URL hình ảnh an toàn
+    function getSafeImageUrl(url, category, isPet = false) {
+        if (url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/'))) {
+            return url;
+        }
+        return getFallbackSvg(category, isPet);
+    }
+
+    // Helper: Xử lý khi ảnh bị lỗi (chặn lặp vô hạn và thay bằng SVG fallback đẹp mắt)
+    function handleImageError(imgEl, category, isPet = false) {
+        imgEl.onerror = null;
+        imgEl.src = getFallbackSvg(category, isPet);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODULE 1: SẢN PHẨM (Thành viên 1) — 5 APIS CRUD BẰNG AJAX
+    // ═══════════════════════════════════════════════════════════════
+
+    // 1. GET ALL ITEMS (AJAX)
+    async function loadProductsAjax() {
+        const tbody = document.getElementById('productsTableBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Đang gọi GET /api/products...</td></tr>';
+
+        try {
+            const res = await fetch(`${API_BASE}/api/products`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            allProducts = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
+            renderProducts(allProducts);
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Lỗi tải dữ liệu: ${err.message}. Hãy chắc chắn Web API/Gateway đang chạy tại ${API_BASE}</td></tr>`;
+        }
+    }
+
+    function renderProducts(items) {
+        const tbody = document.getElementById('productsTableBody');
+        if (!items || items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không tìm thấy sản phẩm nào.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map(p => `
+            <tr id="prod-row-${p.id}">
+                <td class="fw-bold">${p.id}</td>
+                <td>
+                    <img src="${getSafeImageUrl(p.imageUrl, p.category, false)}" 
+                         alt="${escapeHtml(p.name)}" 
+                         loading="lazy" 
+                         referrerpolicy="no-referrer"
+                         onerror="handleImageError(this, '${p.category}', false)" 
+                         class="rounded border shadow-sm" 
+                         style="width: 48px; height: 48px; object-fit: cover; background: #f8fafc;">
+                </td>
+                <td>
+                    <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
+                    <div class="small text-muted text-truncate" style="max-width: 250px;">${escapeHtml(p.description || '')}</div>
+                </td>
+                <td><span class="badge bg-light text-dark border">${p.category}</span></td>
+                <td class="fw-bold text-primary">${Number(p.price).toLocaleString('vi-VN')}đ</td>
+                <td>
+                    <span class="badge ${p.stock < 10 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}">
+                        ${p.stock}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge ${p.isActive ? 'bg-success' : 'bg-secondary'}">${p.isActive ? 'Đang bán' : 'Ẩn'}</span>
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-outline-info btn-sm" onclick="viewProductDetailAjax(${p.id})" title="GET by ID">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm ms-1" onclick="openProductEditModal(${p.id})" title="PUT">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm ms-1" onclick="deleteProductAjax(${p.id}, '${escapeHtml(p.name)}')" title="DELETE">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 2. GET ITEM THEO ID (AJAX)
+    async function viewProductDetailAjax(id) {
+        const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+        const body = document.getElementById('productDetailBody');
+        body.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>Gọi GET /api/products/' + id + '...</div>';
+        modal.show();
+
+        try {
+            const res = await fetch(`${API_BASE}/api/products/${id}`);
+            const data = await res.json();
+            const p = (data && data.data) ? data.data : data;
+
+            body.innerHTML = `
+                <div class="text-center mb-3">
+                    <img src="${getSafeImageUrl(p.imageUrl, p.category, false)}" 
+                         alt="${escapeHtml(p.name)}" 
+                         loading="lazy" 
+                         referrerpolicy="no-referrer"
+                         onerror="handleImageError(this, '${p.category}', false)" 
+                         class="rounded shadow-sm border" 
+                         style="max-width: 160px; max-height: 160px; object-fit: cover;">
+                </div>
+                <table class="table table-bordered table-sm mb-0">
+                    <tr><th style="width: 140px;">Mã sản phẩm (ID):</th><td>${p.id}</td></tr>
+                    <tr><th>Tên sản phẩm:</th><td class="fw-bold">${escapeHtml(p.name)}</td></tr>
+                    <tr><th>Danh mục:</th><td>${p.category}</td></tr>
+                    <tr><th>Giá bán:</th><td class="text-primary fw-bold">${Number(p.price).toLocaleString('vi-VN')}đ</td></tr>
+                    <tr><th>Tồn kho:</th><td>${p.stock} chiếc</td></tr>
+                    <tr><th>Trạng thái:</th><td>${p.isActive ? 'Đang hoạt động' : 'Tạm dừng'}</td></tr>
+                    <tr><th>Mô tả chi tiết:</th><td>${escapeHtml(p.description || '')}</td></tr>
+                </table>
+            `;
+        } catch (err) {
+            body.innerHTML = `<div class="alert alert-danger mb-0">Lỗi lấy chi tiết: ${err.message}</div>`;
+        }
+    }
+
+    // 3. POST & 4. PUT: TẠO MỚI HOẶC CẬP NHẬT SẢN PHẨM (AJAX)
+    function openProductCreateModal() {
+        document.getElementById('productFormTitle').textContent = 'Thêm sản phẩm mới (POST /api/products)';
+        document.getElementById('pId').value = '';
+        document.getElementById('pName').value = '';
+        document.getElementById('pCategory').value = 'Food';
+        document.getElementById('pPrice').value = '';
+        document.getElementById('pStock').value = '10';
+        document.getElementById('pImageUrl').value = '';
+        document.getElementById('pDescription').value = '';
+        new bootstrap.Modal(document.getElementById('productFormModal')).show();
+    }
+
+    function openProductEditModal(id) {
+        const p = allProducts.find(x => x.id === id);
+        if (!p) return;
+
+        document.getElementById('productFormTitle').textContent = `Cập nhật sản phẩm #${id} (PUT /api/products/${id})`;
+        document.getElementById('pId').value = p.id;
+        document.getElementById('pName').value = p.name;
+        document.getElementById('pCategory').value = p.category;
+        document.getElementById('pPrice').value = p.price;
+        document.getElementById('pStock').value = p.stock;
+        document.getElementById('pImageUrl').value = p.imageUrl || '';
+        document.getElementById('pDescription').value = p.description || '';
+        new bootstrap.Modal(document.getElementById('productFormModal')).show();
+    }
+
+    async function saveProductAjax(e) {
+        e.preventDefault();
+        const id = document.getElementById('pId').value;
+        const isEdit = Boolean(id);
+
+        const payload = {
+            name: document.getElementById('pName').value.trim(),
+            description: document.getElementById('pDescription').value.trim(),
+            price: parseFloat(document.getElementById('pPrice').value),
+            stock: parseInt(document.getElementById('pStock').value),
+            category: document.getElementById('pCategory').value,
+            imageUrl: document.getElementById('pImageUrl').value.trim() || null
+        };
+
+        const btn = document.getElementById('btnSaveProduct');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+
+        try {
+            const url = isEdit ? `${API_BASE}/api/products/${id}` : `${API_BASE}/api/products`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: getAuthHeaders('application/json'),
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('productFormModal')).hide();
+                alert(`✅ ${isEdit ? 'Cập nhật' : 'Thêm mới'} sản phẩm thành công qua AJAX!`);
+                loadProductsAjax();
+            } else {
+                alert(`❌ Thất bại: ${result.message || JSON.stringify(result)}`);
+            }
+        } catch (err) {
+            alert(`❌ Lỗi kết nối: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Lưu sản phẩm';
+        }
+    }
+
+    // 5. DELETE ITEM (AJAX)
+    async function deleteProductAjax(id, name) {
+        if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}" (ID: ${id}) bằng AJAX?`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/products/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(null)
+            });
+
+            if (res.ok) {
+                // Xóa trực tiếp khỏi DOM không reload trang
+                const row = document.getElementById(`prod-row-${id}`);
+                if (row) {
+                    row.style.transition = 'all 0.5s';
+                    row.style.background = '#ffebee';
+                    setTimeout(() => row.remove(), 400);
+                }
+                alert(`✅ Đã xóa sản phẩm #${id} thành công qua AJAX (DELETE)!`);
+            } else {
+                const err = await res.json();
+                alert(`❌ Xóa thất bại: ${err.message || 'Lỗi không xác định'}`);
+            }
+        } catch (err) {
+            alert(`❌ Lỗi kết nối khi xóa: ${err.message}`);
+        }
+    }
+
+    function filterProducts() {
+        const search = document.getElementById('productSearch').value.toLowerCase();
+        const cat = document.getElementById('productCategoryFilter').value;
+        const filtered = allProducts.filter(p => {
+            const matchName = !search || p.name.toLowerCase().includes(search);
+            const matchCat = !cat || p.category === cat;
+            return matchName && matchCat;
+        });
+        renderProducts(filtered);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // MODULE 2: THÚ CƯNG (Thành viên 2) — 5 APIS CRUD BẰNG AJAX
+    // ═══════════════════════════════════════════════════════════════
+
+    // 1. GET ALL PETS (AJAX)
+    async function loadPetsAjax() {
+        const tbody = document.getElementById('petsTableBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Đang gọi GET /api/pets...</td></tr>';
+
+        try {
+            const res = await fetch(`${API_BASE}/api/pets`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            allPets = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
+            renderPets(allPets);
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Lỗi tải thú cưng: ${err.message}</td></tr>`;
+        }
+    }
+
+    function renderPets(items) {
+        const tbody = document.getElementById('petsTableBody');
+        if (!items || items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Không tìm thấy thú cưng nào.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map(p => `
+            <tr id="pet-row-${p.id}">
+                <td class="fw-bold">${p.id}</td>
+                <td>
+                    <img src="${getSafeImageUrl(p.imageUrl, p.category, true)}" 
+                         alt="${escapeHtml(p.name)}" 
+                         loading="lazy" 
+                         referrerpolicy="no-referrer"
+                         onerror="handleImageError(this, '${p.category}', true)" 
+                         class="rounded border shadow-sm" 
+                         style="width: 48px; height: 48px; object-fit: cover; background: #ecfdf5;">
+                </td>
+                <td>
+                    <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
+                    <div class="small text-muted text-truncate" style="max-width: 250px;">${escapeHtml(p.description || '')}</div>
+                </td>
+                <td>
+                    <span class="badge bg-light text-dark border">${p.category}</span>
+                    <span class="small text-muted ms-1">${escapeHtml(p.breed || '')}</span>
+                </td>
+                <td>${p.ageMonths} tháng</td>
+                <td class="fw-bold text-success">${Number(p.price).toLocaleString('vi-VN')}đ</td>
+                <td>
+                    <span class="badge ${p.status === 'Available' ? 'bg-success' : (p.status === 'Reserved' ? 'bg-warning text-dark' : 'bg-secondary')}">
+                        ${p.status}
+                    </span>
+                </td>
+                <td class="text-end">
+                    <button class="btn btn-outline-info btn-sm" onclick="viewPetDetailAjax(${p.id})" title="GET by ID">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-success btn-sm ms-1" onclick="openPetEditModal(${p.id})" title="PUT">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm ms-1" onclick="deletePetAjax(${p.id}, '${escapeHtml(p.name)}')" title="DELETE">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // 2. GET ITEM THEO ID (AJAX)
+    async function viewPetDetailAjax(id) {
+        const modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
+        const body = document.getElementById('productDetailBody');
+        body.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm me-2"></span>Gọi GET /api/pets/' + id + '...</div>';
+        modal.show();
+
+        try {
+            const res = await fetch(`${API_BASE}/api/pets/${id}`);
+            const data = await res.json();
+            const p = (data && data.data) ? data.data : data;
+
+            body.innerHTML = `
+                <div class="text-center mb-3">
+                    <img src="${getSafeImageUrl(p.imageUrl, p.category, true)}" 
+                         alt="${escapeHtml(p.name)}" 
+                         loading="lazy" 
+                         referrerpolicy="no-referrer"
+                         onerror="handleImageError(this, '${p.category}', true)" 
+                         class="rounded shadow-sm border" 
+                         style="max-width: 160px; max-height: 160px; object-fit: cover;">
+                </div>
+                <table class="table table-bordered table-sm mb-0">
+                    <tr><th style="width: 140px;">Mã thú cưng (ID):</th><td>${p.id}</td></tr>
+                    <tr><th>Tên thú cưng:</th><td class="fw-bold">${escapeHtml(p.name)}</td></tr>
+                    <tr><th>Loài / Giống:</th><td>${p.category} - ${escapeHtml(p.breed || '')}</td></tr>
+                    <tr><th>Tuổi:</th><td>${p.ageMonths} tháng tuổi</td></tr>
+                    <tr><th>Giá bán:</th><td class="text-success fw-bold">${Number(p.price).toLocaleString('vi-VN')}đ</td></tr>
+                    <tr><th>Trạng thái:</th><td><span class="badge bg-success">${p.status}</span></td></tr>
+                    <tr><th>Mô tả chi tiết:</th><td>${escapeHtml(p.description || '')}</td></tr>
+                </table>
+            `;
+        } catch (err) {
+            body.innerHTML = `<div class="alert alert-danger mb-0">Lỗi lấy chi tiết thú cưng: ${err.message}</div>`;
+        }
+    }
+
+    // 3. POST & 4. PUT: TẠO MỚI HOẶC CẬP NHẬT THÚ CƯNG (AJAX)
+    function openPetCreateModal() {
+        document.getElementById('petFormTitle').textContent = 'Thêm thú cưng mới (POST /api/pets)';
+        document.getElementById('petId').value = '';
+        document.getElementById('petName').value = '';
+        document.getElementById('petBreed').value = '';
+        document.getElementById('petCategory').value = 'Dog';
+        document.getElementById('petAgeMonths').value = '2';
+        document.getElementById('petPrice').value = '';
+        document.getElementById('petStatus').value = 'Available';
+        document.getElementById('petImageUrl').value = '';
+        document.getElementById('petDescription').value = '';
+        new bootstrap.Modal(document.getElementById('petFormModal')).show();
+    }
+
+    function openPetEditModal(id) {
+        const p = allPets.find(x => x.id === id);
+        if (!p) return;
+
+        document.getElementById('petFormTitle').textContent = `Cập nhật thú cưng #${id} (PUT /api/pets/${id})`;
+        document.getElementById('petId').value = p.id;
+        document.getElementById('petName').value = p.name;
+        document.getElementById('petBreed').value = p.breed;
+        document.getElementById('petCategory').value = p.category;
+        document.getElementById('petAgeMonths').value = p.ageMonths;
+        document.getElementById('petPrice').value = p.price;
+        document.getElementById('petStatus').value = p.status;
+        document.getElementById('petImageUrl').value = p.imageUrl || '';
+        document.getElementById('petDescription').value = p.description || '';
+        new bootstrap.Modal(document.getElementById('petFormModal')).show();
+    }
+
+    async function savePetAjax(e) {
+        e.preventDefault();
+        const id = document.getElementById('petId').value;
+        const isEdit = Boolean(id);
+
+        const payload = {
+            name: document.getElementById('petName').value.trim(),
+            breed: document.getElementById('petBreed').value.trim(),
+            category: document.getElementById('petCategory').value,
+            ageMonths: parseInt(document.getElementById('petAgeMonths').value),
+            price: parseFloat(document.getElementById('petPrice').value),
+            description: document.getElementById('petDescription').value.trim(),
+            imageUrl: document.getElementById('petImageUrl').value.trim() || null,
+            status: document.getElementById('petStatus').value
+        };
+
+        const btn = document.getElementById('btnSavePet');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Đang lưu...';
+
+        try {
+            const url = isEdit ? `${API_BASE}/api/pets/${id}` : `${API_BASE}/api/pets`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            const res = await fetch(url, {
+                method: method,
+                headers: getAuthHeaders('application/json'),
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('petFormModal')).hide();
+                alert(`✅ ${isEdit ? 'Cập nhật' : 'Thêm mới'} thú cưng thành công qua AJAX!`);
+                loadPetsAjax();
+            } else {
+                alert(`❌ Thất bại: ${result.message || JSON.stringify(result)}`);
+            }
+        } catch (err) {
+            alert(`❌ Lỗi kết nối: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Lưu thú cưng';
+        }
+    }
+
+    // 5. DELETE PET (AJAX)
+    async function deletePetAjax(id, name) {
+        if (!confirm(`Bạn có chắc chắn muốn xóa thú cưng "${name}" (ID: ${id}) bằng AJAX?`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/pets/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(null)
+            });
+
+            if (res.ok) {
+                const row = document.getElementById(`pet-row-${id}`);
+                if (row) {
+                    row.style.transition = 'all 0.5s';
+                    row.style.background = '#ffebee';
+                    setTimeout(() => row.remove(), 400);
+                }
+                alert(`✅ Đã xóa thú cưng #${id} thành công qua AJAX (DELETE)!`);
+            } else {
+                const err = await res.json();
+                alert(`❌ Xóa thất bại: ${err.message || 'Lỗi không xác định'}`);
+            }
+        } catch (err) {
+            alert(`❌ Lỗi kết nối khi xóa: ${err.message}`);
+        }
+    }
+
+    function filterPets() {
+        const search = document.getElementById('petSearch').value.toLowerCase();
+        const cat = document.getElementById('petCategoryFilter').value;
+        const filtered = allPets.filter(p => {
+            const matchName = !search || p.name.toLowerCase().includes(search) || (p.breed && p.breed.toLowerCase().includes(search));
+            const matchCat = !cat || p.category === cat;
+            return matchName && matchCat;
+        });
+        renderPets(filtered);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // TAB 3: CONTENT NEGOTIATION & ODATA PLAYGROUND
+    // ═══════════════════════════════════════════════════════════════
+
+    async function testContentNegotiation() {
+        const endpoint = document.getElementById('negotEndpoint').value;
+        const accept = document.querySelector('input[name="acceptHeader"]:checked').value;
+        const url = `${API_BASE}${endpoint}`;
+
+        const statusBadge = document.getElementById('negotStatusBadge');
+        const typeEl = document.getElementById('negotContentType');
+        const resultEl = document.getElementById('negotResult');
+
+        statusBadge.className = 'badge bg-warning text-dark';
+        statusBadge.textContent = 'Đang gửi...';
+        resultEl.textContent = `GET ${url}\nAccept: ${accept}\n\nĐang chờ phản hồi từ Web API...`;
+
+        try {
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': accept }
+            });
+
+            const contentType = res.headers.get('content-type') || 'Unknown';
+            typeEl.textContent = `Content-Type phản hồi: ${contentType}`;
+
+            statusBadge.className = res.ok ? 'badge bg-success' : 'badge bg-danger';
+            statusBadge.textContent = `${res.status} ${res.statusText}`;
+
+            const text = await res.text();
+            resultEl.textContent = text;
+        } catch (err) {
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Error';
+            resultEl.textContent = `Lỗi: ${err.message}`;
+        }
+    }
+
+    function setODataQuery(query) {
+        document.getElementById('odataQueryInput').value = query;
+    }
+
+    async function testODataQuery() {
+        const entity = document.getElementById('odataEntity').value;
+        const query = document.getElementById('odataQueryInput').value.trim();
+        const fullUrl = `${API_BASE}${entity}${query ? '?' + query : ''}`;
+
+        const statusBadge = document.getElementById('odataStatusBadge');
+        const urlEl = document.getElementById('odataUrlFull');
+        const resultEl = document.getElementById('odataResult');
+
+        urlEl.textContent = `URL: ${fullUrl}`;
+        statusBadge.className = 'badge bg-warning text-dark';
+        statusBadge.textContent = 'Đang truy vấn...';
+        resultEl.textContent = 'Đang thực thi truy vấn OData...';
+
+        try {
+            const res = await fetch(fullUrl, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            statusBadge.className = res.ok ? 'badge bg-success' : 'badge bg-danger';
+            statusBadge.textContent = `${res.status} ${res.statusText}`;
+
+            const data = await res.json();
+            resultEl.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Error';
+            resultEl.textContent = `Lỗi truy vấn OData: ${err.message}`;
+        }
+    }
+
+    function updateODataPresets() {
+        const entity = document.getElementById('odataEntity').value;
+        if (entity.includes('Pets')) {
+            document.getElementById('odataQueryInput').value = '$filter=AgeMonths le 6&$orderby=Price desc';
+        } else {
+            document.getElementById('odataQueryInput').value = '$filter=Price gt 200000';
+        }
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+        });
+    }
+
+    // Tự động load dữ liệu khi mở trang
+    document.addEventListener('DOMContentLoaded', () => {
+        loadProductsAjax();
+        loadPetsAjax();
+    });
+</script>
+}
+

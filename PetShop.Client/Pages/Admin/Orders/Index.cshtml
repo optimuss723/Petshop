@@ -178,8 +178,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
 <script>
 const token   = '@HttpContext.Session.GetString("AccessToken")';
-const hubUrl  = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:5003/hubs/orders")';
-const apiBase = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:BaseUrl"] ?? "http://localhost:5000")';
+const hubUrl  = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:OrderHubUrl"] ?? "http://localhost:50142/hubs/orders")';
+const apiBase = '@(((IConfiguration)HttpContext.RequestServices.GetRequiredService(typeof(IConfiguration)))["ApiSettings:BaseUrl"] ?? "http://localhost:50142")';
 
 const conn = new signalR.HubConnectionBuilder()
     .withUrl(hubUrl, { accessTokenFactory: () => token })
