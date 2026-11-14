@@ -235,10 +235,11 @@ public class OrderService : IOrderService
     private readonly IMapper _mapper;
     private readonly IHubContext<OrderHub> _hub;
     private readonly PetShopDbContext _db;
+    private readonly IAuditLogService _auditLog;
 
-    public OrderService(IUnitOfWork uow, IMapper mapper, IHubContext<OrderHub> hub, PetShopDbContext db)
+    public OrderService(IUnitOfWork uow, IMapper mapper, IHubContext<OrderHub> hub, PetShopDbContext db, IAuditLogService auditLog)
     {
-        _uow = uow; _mapper = mapper; _hub = hub; _db = db;
+        _uow = uow; _mapper = mapper; _hub = hub; _db = db; _auditLog = auditLog;
     }
 
     private static OrderStatus? ParseOrderStatus(string? status)
@@ -478,6 +479,9 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
 
+        var staffName = requestingRole == Roles.Staff ? "Nhân viên 1" : (requestingRole == Roles.Admin ? "Quản trị viên" : "Khách hàng");
+        await _auditLog.LogAsync(requestingUserId, staffName, $"Duyệt đơn: {status}", id, $"Chuyển trạng thái đơn hàng #{id} sang {status}");
+
         await _hub.Clients.User(order.UserId.ToString())
             .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
         await _hub.Clients.Group($"User_{order.UserId}")
@@ -513,6 +517,9 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
 
+        var actorName = isStaffOrAdmin ? "Nhân viên 1" : "Khách hàng";
+        await _auditLog.LogAsync(userId, actorName, "Hủy đơn hàng", id, $"Hủy đơn hàng #{id}, hoàn trả tồn kho");
+
         await _hub.Clients.User(order.UserId.ToString())
             .SendAsync("OrderStatusChanged", new { order.Id, Status = "Cancelled" });
         await _hub.Clients.Group($"User_{order.UserId}")
@@ -543,6 +550,8 @@ public class OrderService : IOrderService
 
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
+
+        await _auditLog.LogAsync(1, "Nhân viên 1", "Tạo vận đơn", order.Id, $"Tạo mã vận đơn {trackingCode} đối tác {provider}, chuyển đơn sang Đang giao");
 
         await _hub.Clients.Group("Admins")
             .SendAsync("ShipmentCreated", new { orderId = order.Id, trackingCode });
@@ -613,5 +622,134 @@ public class UserService : IUserService
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync();
         return new ApiResponse<bool>(true, "Vô hiệu hoá tài khoản thành công.", true);
+    }
+}
+
+// ── CATEGORY SERVICE ──────────────────────────────────────────────
+public interface ICategoryService
+{
+    Task<ApiResponse<List<CategoryResponse>>> GetAllAsync(string? type = null);
+    Task<ApiResponse<CategoryResponse>> GetByIdAsync(int id);
+    Task<ApiResponse<CategoryResponse>> CreateAsync(CategoryCreateRequest request);
+    Task<ApiResponse<CategoryResponse>> UpdateAsync(int id, CategoryCreateRequest request);
+    Task<ApiResponse<bool>> DeleteAsync(int id);
+}
+
+public class CategoryService : ICategoryService
+{
+    private static readonly object _lock = new();
+    private static int _nextId = 12;
+    private static readonly List<CategoryResponse> _categories = new()
+    {
+        new(1, "Thức ăn", "Product", "Thức ăn hạt, pate, bánh thưởng dinh dưỡng cho chó mèo", "🍖"),
+        new(2, "Đồ chơi", "Product", "Bóng gai, cần câu mèo, xương gặm, đồ chơi thông minh", "🎾"),
+        new(3, "Phụ kiện", "Product", "Vòng cổ, dây dắt, lồng vận chuyển, bát ăn", "🎀"),
+        new(4, "Thuốc thú y", "Product", "Thuốc tẩy giun, nhỏ gáy trị ve rận, men tiêu hóa", "💊"),
+        new(5, "Vệ sinh & Chăm sóc", "Product", "Sữa tắm, lược chải lông, kéo cắt móng, cát vệ sinh", "🛁"),
+        new(6, "Chó cưng", "Pet", "Corgi, Poodle, Golden Retriever, Husky thuần chủng", "🐶"),
+        new(7, "Mèo cảnh", "Pet", "Mèo Anh lông ngắn, mèo Ba Tư, Bengal, Scottish Fold", "🐱"),
+        new(8, "Chim cảnh", "Pet", "Vẹt uyên ương, chim yến phụng, chim chào mào", "🦜"),
+        new(9, "Cá cảnh", "Pet", "Cá Betta Halfmoon, cá La Hán, cá vàng Ranchu", "🐠"),
+        new(10, "Thỏ kiểng", "Pet", "Thỏ Minilop tai cụp, thỏ trắng New Zealand", "🐰"),
+        new(11, "Thú cưng khác", "Pet", "Hamster, nhím kiểng, rùa cảnh", "🐹")
+    };
+
+    public Task<ApiResponse<List<CategoryResponse>>> GetAllAsync(string? type = null)
+    {
+        lock (_lock)
+        {
+            var query = _categories.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(type))
+            {
+                query = query.Where(c => c.Type.Equals(type, StringComparison.OrdinalIgnoreCase));
+            }
+            return Task.FromResult(new ApiResponse<List<CategoryResponse>>(true, null, query.ToList()));
+        }
+    }
+
+    public Task<ApiResponse<CategoryResponse>> GetByIdAsync(int id)
+    {
+        lock (_lock)
+        {
+            var cat = _categories.FirstOrDefault(c => c.Id == id);
+            if (cat == null) return Task.FromResult(new ApiResponse<CategoryResponse>(false, "Danh mục không tồn tại.", null));
+            return Task.FromResult(new ApiResponse<CategoryResponse>(true, null, cat));
+        }
+    }
+
+    public Task<ApiResponse<CategoryResponse>> CreateAsync(CategoryCreateRequest request)
+    {
+        lock (_lock)
+        {
+            var cat = new CategoryResponse(_nextId++, request.Name, request.Type, request.Description, request.Icon ?? (request.Type == "Product" ? "📦" : "🐾"));
+            _categories.Add(cat);
+            return Task.FromResult(new ApiResponse<CategoryResponse>(true, "Tạo danh mục thành công.", cat));
+        }
+    }
+
+    public Task<ApiResponse<CategoryResponse>> UpdateAsync(int id, CategoryCreateRequest request)
+    {
+        lock (_lock)
+        {
+            var index = _categories.FindIndex(c => c.Id == id);
+            if (index < 0) return Task.FromResult(new ApiResponse<CategoryResponse>(false, "Danh mục không tồn tại.", null));
+            var updated = new CategoryResponse(id, request.Name, request.Type, request.Description, request.Icon ?? _categories[index].Icon);
+            _categories[index] = updated;
+            return Task.FromResult(new ApiResponse<CategoryResponse>(true, "Cập nhật danh mục thành công.", updated));
+        }
+    }
+
+    public Task<ApiResponse<bool>> DeleteAsync(int id)
+    {
+        lock (_lock)
+        {
+            var count = _categories.RemoveAll(c => c.Id == id);
+            if (count == 0) return Task.FromResult(new ApiResponse<bool>(false, "Danh mục không tồn tại.", false));
+            return Task.FromResult(new ApiResponse<bool>(true, "Xóa danh mục thành công.", true));
+        }
+    }
+}
+
+// ── AUDIT LOG SERVICE ─────────────────────────────────────────────
+public interface IAuditLogService
+{
+    Task LogAsync(int staffId, string staffName, string action, int? orderId, string? details);
+    Task<ApiResponse<List<AuditLogResponse>>> GetLogsAsync(int page = 1, int pageSize = 20);
+}
+
+public class AuditLogService : IAuditLogService
+{
+    private static readonly object _lock = new();
+    private static int _nextId = 6;
+    private static readonly List<AuditLogResponse> _logs = new()
+    {
+        new(1, 2, "Nhân viên 1", "Tạo vận đơn", 3, "Tạo mã vận đơn GHN2611140003 - Giao Hàng Nhanh (GHN), chuyển trạng thái sang Đang giao", DateTime.UtcNow.AddMinutes(-25)),
+        new(2, 2, "Nhân viên 1", "Duyệt đơn", 3, "Xác nhận đơn hàng #3 - Tổng tiền thu: 1,140,000đ - Địa chỉ: số nhà 123", DateTime.UtcNow.AddHours(-1)),
+        new(3, 2, "Nhân viên 1", "Duyệt đơn", 2, "Xác nhận đơn hàng #2 - Khách hàng: Lê Quân - Thanh toán COD", DateTime.UtcNow.AddHours(-3)),
+        new(4, 2, "Nhân viên 1", "Tạo vận đơn", 1, "Tạo mã vận đơn GHN2611130001 - Đối tác GHN Express", DateTime.UtcNow.AddHours(-6)),
+        new(5, 2, "Nhân viên 1", "Hoàn tất giao", 1, "Khách đã nhận hàng thành công, đơn chuyển sang Đã giao (Delivered)", DateTime.UtcNow.AddHours(-5))
+    };
+
+    public Task LogAsync(int staffId, string staffName, string action, int? orderId, string? details)
+    {
+        lock (_lock)
+        {
+            var log = new AuditLogResponse(_nextId++, staffId, staffName, action, orderId, details, DateTime.UtcNow);
+            _logs.Insert(0, log);
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task<ApiResponse<List<AuditLogResponse>>> GetLogsAsync(int page = 1, int pageSize = 20)
+    {
+        lock (_lock)
+        {
+            var list = _logs
+                .OrderByDescending(l => l.CreatedAt)
+                .Skip((Math.Max(1, page) - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            return Task.FromResult(new ApiResponse<List<AuditLogResponse>>(true, null, list));
+        }
     }
 }

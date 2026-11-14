@@ -46,6 +46,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IPetService,     PetService>();
 builder.Services.AddScoped<IOrderService,   OrderService>();
 builder.Services.AddScoped<IUserService,    UserService>();
+builder.Services.AddSingleton<ICategoryService, CategoryService>();
+builder.Services.AddSingleton<IAuditLogService,   AuditLogService>();
 builder.Services.AddSingleton<ITokenService, TokenService>(); // Singleton vì stateless
 
 // ──────────────────────────────────────────────────────────────
@@ -187,6 +189,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<OrderHub>("/hubs/orders");
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Auto migrate on startup
 using var scope = app.Services.CreateScope();

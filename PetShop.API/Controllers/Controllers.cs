@@ -176,10 +176,21 @@ public class PetsController : ControllerBase
 public class OrdersController : ControllerBase
 {
     private readonly IOrderService _svc;
-    public OrdersController(IOrderService svc) => _svc = svc;
+    private readonly IAuditLogService _auditLog;
+
+    public OrdersController(IOrderService svc, IAuditLogService auditLog)
+    {
+        _svc = svc;
+        _auditLog = auditLog;
+    }
 
     private int UserId  => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
     private string Role => User.FindFirst(ClaimTypes.Role)!.Value;
+
+    [HttpGet("audit-logs")]
+    [Authorize(Roles = Roles.AdminOrStaff)]
+    public async Task<IActionResult> GetAuditLogs([FromQuery] int page = 1)
+        => Ok(await _auditLog.GetLogsAsync(page));
 
     [HttpGet]
     [Produces("application/json", "application/xml", "text/csv")]
@@ -263,6 +274,38 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> Deactivate(int id) => Ok(await _svc.DeactivateAsync(id));
 
     private string Role => User.FindFirst(ClaimTypes.Role)!.Value;
+}
+
+// ── CATEGORIES ───────────────────────────────────────────────────
+[ApiController]
+[Route("api/categories")]
+public class CategoriesController : ControllerBase
+{
+    private readonly ICategoryService _svc;
+    public CategoriesController(ICategoryService svc) => _svc = svc;
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] string? type = null)
+        => Ok(await _svc.GetAllAsync(type));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetById(int id)
+        => Ok(await _svc.GetByIdAsync(id));
+
+    [HttpPost]
+    [Authorize(Roles = Roles.AdminOrStaff)]
+    public async Task<IActionResult> Create([FromBody] CategoryCreateRequest request)
+        => Ok(await _svc.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = Roles.AdminOrStaff)]
+    public async Task<IActionResult> Update(int id, [FromBody] CategoryCreateRequest request)
+        => Ok(await _svc.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = Roles.AdminOrStaff)]
+    public async Task<IActionResult> Delete(int id)
+        => Ok(await _svc.DeleteAsync(id));
 }
 
 // ── ODATA CONTROLLERS (Hỗ trợ truy vấn $filter, $select, $orderby, $top) ──────
