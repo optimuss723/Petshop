@@ -182,13 +182,21 @@ public class OrdersController : ControllerBase
     private string Role => User.FindFirst(ClaimTypes.Role)!.Value;
 
     [HttpGet]
-    [Authorize(Roles = Roles.AdminOrStaff)]
-    public async Task<IActionResult> GetAll() => Ok(await _svc.GetAllAsync());
+    [Produces("application/json", "application/xml", "text/csv")]
+    public async Task<IActionResult> GetAll([FromQuery] string? status = null)
+    {
+        if (Role == Roles.Admin || Role == Roles.Staff)
+            return Ok(await _svc.GetAllAsync(status));
+        return Ok(await _svc.GetByUserIdAsync(UserId, status));
+    }
 
     [HttpGet("my")]
-    public async Task<IActionResult> GetMine() => Ok(await _svc.GetByUserIdAsync(UserId));
+    [Produces("application/json", "application/xml", "text/csv")]
+    public async Task<IActionResult> GetMine([FromQuery] string? status = null) 
+        => Ok(await _svc.GetByUserIdAsync(UserId, status));
 
     [HttpGet("{id}")]
+    [Produces("application/json", "application/xml", "text/csv")]
     public async Task<IActionResult> GetById(int id) => Ok(await _svc.GetByIdAsync(id));
 
     [HttpPost]
@@ -205,12 +213,10 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost("{id}/cancel")]
-    [Authorize(Roles = Roles.Customer)]
-    public async Task<IActionResult> Cancel(int id) => Ok(await _svc.CancelAsync(id, UserId));
+    public async Task<IActionResult> Cancel(int id) => Ok(await _svc.CancelAsync(id, UserId, Role));
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = Roles.Customer)]
-    public async Task<IActionResult> Delete(int id) => Ok(await _svc.CancelAsync(id, UserId));
+    public async Task<IActionResult> Delete(int id) => Ok(await _svc.CancelAsync(id, UserId, Role));
 
     [HttpPost("{id}/ship")]
     [Authorize(Roles = Roles.AdminOrStaff)]

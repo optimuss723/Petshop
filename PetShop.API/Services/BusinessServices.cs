@@ -6,6 +6,7 @@ using PetShop.API.Hubs;
 using PetShop.Repository.Data;
 using PetShop.Repository.Entities;
 using PetShop.Repository.UnitOfWork;
+using PetShop.Shared.Constants;
 using PetShop.Shared.DTOs.Request;
 using PetShop.Shared.DTOs.Response;
 using PetShop.Shared.Enums;
@@ -219,12 +220,12 @@ public class PetService : IPetService
 // ── ORDER SERVICE ─────────────────────────────────────────────────
 public interface IOrderService
 {
-    Task<ApiResponse<List<OrderResponse>>> GetAllAsync();
-    Task<ApiResponse<List<OrderResponse>>> GetByUserIdAsync(int userId);
+    Task<ApiResponse<List<OrderResponse>>> GetAllAsync(string? status = null);
+    Task<ApiResponse<List<OrderResponse>>> GetByUserIdAsync(int userId, string? status = null);
     Task<ApiResponse<OrderResponse>> GetByIdAsync(int id);
     Task<ApiResponse<OrderResponse>> CreateAsync(int userId, OrderRequest request);
     Task<ApiResponse<OrderResponse>> UpdateStatusAsync(int id, OrderStatus status, int requestingUserId, string requestingRole);
-    Task<ApiResponse<bool>> CancelAsync(int id, int userId);
+    Task<ApiResponse<bool>> CancelAsync(int id, int userId, string? role = null);
     Task<ApiResponse<ShipmentCreatedResponse>> CreateShipmentAsync(int id, string? note);
 }
 
@@ -240,24 +241,85 @@ public class OrderService : IOrderService
         _uow = uow; _mapper = mapper; _hub = hub; _db = db;
     }
 
-    public async Task<ApiResponse<List<OrderResponse>>> GetAllAsync()
+    private static OrderStatus? ParseOrderStatus(string? status)
     {
-        var orders = await _uow.Orders.Query()
+        if (string.IsNullOrWhiteSpace(status)) return null;
+        var s = status.Trim().ToLowerInvariant();
+        if (s == "pending" || s.Contains("chờ") || s.Contains("chua") || s.Contains("chưa"))
+            return OrderStatus.Pending;
+        if (s == "confirmed" || s.Contains("xác nhận") || s.Contains("xac nhan"))
+            return OrderStatus.Confirmed;
+        if (s == "shipping" || (s.Contains("giao") && !s.Contains("đã")))
+            return OrderStatus.Shipping;
+        if (s == "awaitingreceipt")
+            return OrderStatus.AwaitingReceipt;
+        if (s == "delivered" || s.Contains("đã giao") || s.Contains("hoàn thành"))
+            return OrderStatus.Delivered;
+        if (s == "cancelled" || s.Contains("huỷ") || s.Contains("huy"))
+            return OrderStatus.Cancelled;
+        if (Enum.TryParse<OrderStatus>(status, true, out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private async Task RestoreOrderStockAsync(int orderId)
+    {
+        var items = await _db.OrderItems
+            .Where(i => i.OrderId == orderId)
+            .ToListAsync();
+
+        foreach (var item in items)
+        {
+            if (item.ProductId.HasValue && item.Quantity > 0)
+            {
+                await _db.Products
+                    .Where(p => p.Id == item.ProductId.Value)
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Stock, p => p.Stock + item.Quantity));
+            }
+
+            if (item.PetId.HasValue)
+            {
+                await _db.Pets
+                    .Where(p => p.Id == item.PetId.Value)
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Status, PetStatus.Available));
+            }
+        }
+    }
+
+    public async Task<ApiResponse<List<OrderResponse>>> GetAllAsync(string? status = null)
+    {
+        var query = _uow.Orders.Query()
             .Include(o => o.User)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .Include(o => o.Items).ThenInclude(i => i.Pet)
-            .ToListAsync();
+            .AsQueryable();
+
+        var parsedStatus = ParseOrderStatus(status);
+        if (parsedStatus.HasValue)
+        {
+            query = query.Where(o => o.Status == parsedStatus.Value);
+        }
+
+        var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
         return new ApiResponse<List<OrderResponse>>(true, null, _mapper.Map<List<OrderResponse>>(orders));
     }
 
-    public async Task<ApiResponse<List<OrderResponse>>> GetByUserIdAsync(int userId)
+    public async Task<ApiResponse<List<OrderResponse>>> GetByUserIdAsync(int userId, string? status = null)
     {
-        var orders = await _uow.Orders.Query()
+        var query = _uow.Orders.Query()
             .Where(o => o.UserId == userId)
             .Include(o => o.User)
             .Include(o => o.Items).ThenInclude(i => i.Product)
             .Include(o => o.Items).ThenInclude(i => i.Pet)
-            .ToListAsync();
+            .AsQueryable();
+
+        var parsedStatus = ParseOrderStatus(status);
+        if (parsedStatus.HasValue)
+        {
+            query = query.Where(o => o.Status == parsedStatus.Value);
+        }
+
+        var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
         return new ApiResponse<List<OrderResponse>>(true, null, _mapper.Map<List<OrderResponse>>(orders));
     }
 
@@ -405,6 +467,12 @@ public class OrderService : IOrderService
         if (requestingRole == "Customer" && requestingUserId != order.UserId)
             return new ApiResponse<OrderResponse>(false, "Không có quyền.", null);
 
+        var previousStatus = order.Status;
+        if (previousStatus != OrderStatus.Cancelled && status == OrderStatus.Cancelled)
+        {
+            await RestoreOrderStockAsync(order.Id);
+        }
+
         order.Status    = status;
         order.UpdatedAt = DateTime.UtcNow;
         _uow.Orders.Update(order);
@@ -414,17 +482,31 @@ public class OrderService : IOrderService
             .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
         await _hub.Clients.Group($"User_{order.UserId}")
             .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
+        await _hub.Clients.Group("Admins")
+            .SendAsync("OrderStatusChanged", new { order.Id, Status = status.ToString() });
 
         return await GetByIdAsync(id);
     }
 
-    public async Task<ApiResponse<bool>> CancelAsync(int id, int userId)
+    public async Task<ApiResponse<bool>> CancelAsync(int id, int userId, string? role = null)
     {
         var order = await _uow.Orders.GetByIdAsync(id);
         if (order == null) return new ApiResponse<bool>(false, "Đơn hàng không tồn tại.", false);
-        if (order.UserId != userId) return new ApiResponse<bool>(false, "Không có quyền.", false);
-        if (order.Status != OrderStatus.Pending)
+
+        bool isStaffOrAdmin = role == Roles.Admin || role == Roles.Staff;
+        if (!isStaffOrAdmin && order.UserId != userId)
+            return new ApiResponse<bool>(false, "Không có quyền.", false);
+
+        if (order.Status == OrderStatus.Cancelled)
+            return new ApiResponse<bool>(false, "Đơn hàng đã được huỷ trước đó.", false);
+
+        if (order.Status == OrderStatus.Delivered)
+            return new ApiResponse<bool>(false, "Không thể huỷ đơn hàng đã giao thành công.", false);
+
+        if (!isStaffOrAdmin && order.Status != OrderStatus.Pending)
             return new ApiResponse<bool>(false, "Chỉ có thể huỷ đơn hàng đang chờ xử lý.", false);
+
+        await RestoreOrderStockAsync(order.Id);
 
         order.Status    = OrderStatus.Cancelled;
         order.UpdatedAt = DateTime.UtcNow;
@@ -438,7 +520,7 @@ public class OrderService : IOrderService
         await _hub.Clients.Group("Admins")
             .SendAsync("OrderStatusChanged", new { order.Id, Status = "Cancelled" });
 
-        return new ApiResponse<bool>(true, "Huỷ đơn hàng thành công.", true);
+        return new ApiResponse<bool>(true, "Huỷ đơn hàng thành công, số lượng đã được hoàn lại kho hàng.", true);
     }
 
     public async Task<ApiResponse<ShipmentCreatedResponse>> CreateShipmentAsync(int id, string? note)
